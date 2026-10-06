@@ -1,18 +1,11 @@
-# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual Environment
 venv/
 env/
-
-# IDE
 .vscode/
 .idea/
-
-# Large checkpoints / data files
-*.pth
 *.pt
+*.pth
 *.nii
 *.nii.gz
