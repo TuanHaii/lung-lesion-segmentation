@@ -8,11 +8,6 @@ try:
 except ImportError:
     cv2 = None
 
-try:
-    import nibabel as nib
-except ImportError:
-    nib = None
-
 CT_WINDOWS = {
     "lung": (-1000, 400),
     "mediastinum": (-160, 240),
