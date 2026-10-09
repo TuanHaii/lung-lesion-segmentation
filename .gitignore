@@ -1,3 +1,16 @@
+<<<<<<< HEAD
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.vscode/
+.idea/
+*.pt
+*.pth
+*.nii
+*.nii.gz
+=======
 # 1. Dữ liệu y tế thô và đã tiền xử lý
 # data/
 *.nii
@@ -25,3 +38,4 @@ __pycache__/
 # 4. Thư mục chạy thực nghiệm tạm thời
 experiments/
 predictions/
+>>>>>>> main
