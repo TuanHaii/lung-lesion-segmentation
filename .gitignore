@@ -1,5 +1,5 @@
 # 1. Dữ liệu y tế thô và đã tiền xử lý
-data/
+# data/
 *.nii
 *.nii.gz
 *.dcm
