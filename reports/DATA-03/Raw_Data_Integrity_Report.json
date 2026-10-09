@@ -1,0 +1,687 @@
+{
+  "task_id": "DATA-03",
+  "total_ct_volumes": 20,
+  "total_mask_volumes": 20,
+  "volumes": {
+    "coronacases_001": {
+      "ct_filename": "coronacases_001.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        301
+      ],
+      "num_slices": 301,
+      "voxel_spacing_mm": [
+        0.8105,
+        0.8105,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        2996.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_001.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          301
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_002": {
+      "ct_filename": "coronacases_002.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        200
+      ],
+      "num_slices": 200,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.5
+      ],
+      "raw_intensity_range": [
+        -1023.0,
+        9567.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_002.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          200
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_003": {
+      "ct_filename": "coronacases_003.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        200
+      ],
+      "num_slices": 200,
+      "voxel_spacing_mm": [
+        0.7363,
+        0.7363,
+        1.5
+      ],
+      "raw_intensity_range": [
+        -1023.0,
+        8931.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_003.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          200
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_004": {
+      "ct_filename": "coronacases_004.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        270
+      ],
+      "num_slices": 270,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        2020.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_004.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          270
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_005": {
+      "ct_filename": "coronacases_005.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        290
+      ],
+      "num_slices": 290,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        5528.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_005.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          290
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_006": {
+      "ct_filename": "coronacases_006.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        213
+      ],
+      "num_slices": 213,
+      "voxel_spacing_mm": [
+        0.7598,
+        0.7598,
+        1.5
+      ],
+      "raw_intensity_range": [
+        -1023.0,
+        2217.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_006.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          213
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_007": {
+      "ct_filename": "coronacases_007.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        249
+      ],
+      "num_slices": 249,
+      "voxel_spacing_mm": [
+        0.7129,
+        0.7129,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1023.0,
+        2515.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_007.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          249
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_008": {
+      "ct_filename": "coronacases_008.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        301
+      ],
+      "num_slices": 301,
+      "voxel_spacing_mm": [
+        0.7246,
+        0.7246,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        8575.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_008.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          301
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_009": {
+      "ct_filename": "coronacases_009.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        256
+      ],
+      "num_slices": 256,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        1845.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_009.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          256
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "coronacases_010": {
+      "ct_filename": "coronacases_010.nii.gz",
+      "image_shape": [
+        512,
+        512,
+        301
+      ],
+      "num_slices": 301,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.0
+      ],
+      "raw_intensity_range": [
+        -1021.0,
+        1920.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "coronacases_010.nii.gz",
+        "mask_shape": [
+          512,
+          512,
+          301
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_10_85902_1": {
+      "ct_filename": "radiopaedia_10_85902_1.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        39
+      ],
+      "num_slices": 39,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_10_85902_1.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          39
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_10_85902_3": {
+      "ct_filename": "radiopaedia_10_85902_3.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        418
+      ],
+      "num_slices": 418,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        1.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_10_85902_3.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          418
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_14_85914_0": {
+      "ct_filename": "radiopaedia_14_85914_0.nii.gz",
+      "image_shape": [
+        630,
+        401,
+        110
+      ],
+      "num_slices": 110,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        2.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_14_85914_0.nii.gz",
+        "mask_shape": [
+          630,
+          401,
+          110
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_27_86410_0": {
+      "ct_filename": "radiopaedia_27_86410_0.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        66
+      ],
+      "num_slices": 66,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        4.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_27_86410_0.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          66
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_29_86490_1": {
+      "ct_filename": "radiopaedia_29_86490_1.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        42
+      ],
+      "num_slices": 42,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_29_86490_1.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          42
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_29_86491_1": {
+      "ct_filename": "radiopaedia_29_86491_1.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        42
+      ],
+      "num_slices": 42,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_29_86491_1.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          42
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_36_86526_0": {
+      "ct_filename": "radiopaedia_36_86526_0.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        45
+      ],
+      "num_slices": 45,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_36_86526_0.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          45
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_40_86625_0": {
+      "ct_filename": "radiopaedia_40_86625_0.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        93
+      ],
+      "num_slices": 93,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        4.0
+      ],
+      "raw_intensity_range": [
+        12.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_40_86625_0.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          93
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_4_85506_1": {
+      "ct_filename": "radiopaedia_4_85506_1.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        39
+      ],
+      "num_slices": 39,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_4_85506_1.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          39
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    },
+    "radiopaedia_7_85703_0": {
+      "ct_filename": "radiopaedia_7_85703_0.nii.gz",
+      "image_shape": [
+        630,
+        630,
+        45
+      ],
+      "num_slices": 45,
+      "voxel_spacing_mm": [
+        0.6836,
+        0.6836,
+        6.0
+      ],
+      "raw_intensity_range": [
+        0.0,
+        255.0
+      ],
+      "mask_verification": {
+        "matched": true,
+        "mask_filename": "radiopaedia_7_85703_0.nii.gz",
+        "mask_shape": [
+          630,
+          630,
+          45
+        ],
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "shape_matched": true
+      }
+    }
+  }
+}

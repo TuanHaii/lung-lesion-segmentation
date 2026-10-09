@@ -1,0 +1,4 @@
+split,num_patients,total_slices,lesion_slices,normal_slices,slice_percentage,lesion_ratio,patient_ids
+train,14,1277,1057,220,72.97%,82.77%,P_coronacases_001;P_coronacases_003;P_coronacases_004;P_coronacases_006;P_coronacases_008;P_coronacases_009;P_coronacases_010;P_radiopaedia_10_85902_1;P_radiopaedia_10_85902_3;P_radiopaedia_14_85914_0;P_radiopaedia_29_86490_1;P_radiopaedia_29_86491_1;P_radiopaedia_4_85506_1;P_radiopaedia_7_85703_0
+val,3,208,172,36,11.89%,82.69%,P_coronacases_005;P_radiopaedia_36_86526_0;P_radiopaedia_40_86625_0
+test,3,265,221,44,15.14%,83.40%,P_coronacases_002;P_coronacases_007;P_radiopaedia_27_86410_0

@@ -1,0 +1,97 @@
+{
+  "dataset_version": "v1.0-frozen",
+  "freeze_timestamp_utc": "2026-10-09T08:53:19.617770+00:00",
+  "project": "CT Lung Lesion Segmentation via Attention U-Net",
+  "specifications": {
+    "target_resolution": [
+      256,
+      256
+    ],
+    "hu_window_range": [
+      -1000.0,
+      400.0
+    ],
+    "normalization": "Min-Max [0.0, 1.0]",
+    "mask_type": "Binary {0, 1} (1: Lesion/Infection)",
+    "interpolation_image": "Bilinear (cv2.INTER_LINEAR)",
+    "interpolation_mask": "Nearest Neighbor (cv2.INTER_NEAREST)",
+    "split_strategy": "Patient-level 70/15/15",
+    "random_seed": 2026
+  },
+  "slice_distribution": {
+    "total_slices": 1750,
+    "lesion_slices": 1450,
+    "normal_slices": 300,
+    "train_slices": 1277,
+    "val_slices": 208,
+    "test_slices": 265
+  },
+  "patient_distribution": {
+    "total_patients": 20,
+    "train_patients": [
+      "P_coronacases_001",
+      "P_coronacases_003",
+      "P_coronacases_004",
+      "P_coronacases_006",
+      "P_coronacases_008",
+      "P_coronacases_009",
+      "P_coronacases_010",
+      "P_radiopaedia_10_85902_1",
+      "P_radiopaedia_10_85902_3",
+      "P_radiopaedia_14_85914_0",
+      "P_radiopaedia_29_86490_1",
+      "P_radiopaedia_29_86491_1",
+      "P_radiopaedia_4_85506_1",
+      "P_radiopaedia_7_85703_0"
+    ],
+    "val_patients": [
+      "P_coronacases_005",
+      "P_radiopaedia_36_86526_0",
+      "P_radiopaedia_40_86625_0"
+    ],
+    "test_patients": [
+      "P_coronacases_002",
+      "P_coronacases_007",
+      "P_radiopaedia_27_86410_0"
+    ]
+  },
+  "file_integrity_checksums": {
+    "src/data/hu_window.py": {
+      "sha256": "146ad3d59e2723a033c18c7965ce6039c39b0c9cdae4152856ed8518a3ed66a4",
+      "size_bytes": 2282
+    },
+    "src/data/transform.py": {
+      "sha256": "471ae651640b5d85c21067985854711846e4c43c2d565c7a514ec7be450b1cf7",
+      "size_bytes": 3653
+    },
+    "src/data/mask_binarize.py": {
+      "sha256": "ee55058f02a6965feea1f070df7f29008643f45289c9dde9d0781cbdee92ea7e",
+      "size_bytes": 2593
+    },
+    "src/data/augmentations.py": {
+      "sha256": "80714943292fd8f653893b342861ca4093d4f0dfc4b167612eb366ef6dca8472",
+      "size_bytes": 3896
+    },
+    "src/data/dataset.py": {
+      "sha256": "30a030564a6dc85f533f1defbe816f6ca55a009b263a36996231502cf3bd172a",
+      "size_bytes": 6155
+    },
+    "data/processed/clean_slices_manifest.csv": {
+      "sha256": "7e3f6dadfef2862f5d0306fc66aef686c1eb24d37e1bf62e9fbb1e11b0cc14d6",
+      "size_bytes": 400773
+    },
+    "data/processed/splits_patient_level.json": {
+      "sha256": "bd1afe5325603baaa7ae4d5ee662f9d6719403b35e585b99087c3c470c7f6f07",
+      "size_bytes": 92683
+    },
+    "data/processed/summary_split.csv": {
+      "sha256": "d93ce94d1ae277d47b61db2e09d68bba1d90de2e757a1a3df2492234332b91b3",
+      "size_bytes": 634
+    }
+  },
+  "qa_status": {
+    "zero_leakage_verified": true,
+    "data_manifest_locked": true,
+    "unseen_test_set_isolated": true
+  }
+}
