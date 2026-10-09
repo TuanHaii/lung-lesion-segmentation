@@ -1,0 +1,8 @@
+nibabel
+numpy
+torch
+tqdm
+albumentations
+opencv-python
+streamlit
+pyyaml
