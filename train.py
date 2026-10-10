@@ -1,14 +1,22 @@
 import os
+import sys
 import yaml
 import time
+from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
-from models.attention_unet import AttentionUNet
-from losses.hybrid_loss import HybridLoss
+# Thêm thư mục gốc của project vào sys.path để Python nhận diện module src
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
+
+# Sửa lại đường dẫn Import theo cấu trúc thư mục src/
+from src.models.attention_unet import AttentionUNet
+from src.losses.hybrid_loss import HybridLoss
 
 def calculate_dice_score(logits, targets, eps=1e-5):
     """Tính toán Validation Dice Score không dùng gradient"""
