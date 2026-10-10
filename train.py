@@ -84,11 +84,9 @@ def main(config_path="configs/config.yaml"):
     ).to(device)
 
     criterion = HybridLoss(
-        alpha=config['training']['loss']['alpha_bce'],
-        beta=config['training']['loss']['beta_dice'],
-        eps=config['training']['loss']['smooth_epsilon']
-    )
-
+        bce_weight=config['training']['loss']['alpha_bce'],
+        dice_weight=config['training']['loss']['beta_dice']
+    ).to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=config['training']['optimizer']['lr'],
