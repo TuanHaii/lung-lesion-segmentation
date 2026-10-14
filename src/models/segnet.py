@@ -1,3 +1,10 @@
+"""
+Task ID: MODEL-03 (Sprint W3 - Baseline Models)
+Mô tả: Kiến trúc mạng SegNet (Encoder - Decoder với Max-Unpooling Indices)
+Tác giả: Hậu (Baseline & Experiment)
+Phục vụ: Đối chứng bảo toàn ranh giới tổn thương nhỏ (RQ2)
+Input shape: (B, 1, H, W) -> Output shape: (B, 1, H, W)
+"""
 
 import torch
 import torch.nn as nn
