@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,36 +5,7 @@ venv/
 env/
 .vscode/
 .idea/
-*.pt
-*.pth
-*.nii
-*.nii.gz
-=======
-# 1. Dữ liệu y tế thô và đã tiền xử lý
-# data/
-*.nii
-*.nii.gz
-*.dcm
-*.npy
-*.npz
-
-# 2. Trọng số mô hình đã huấn luyện (Checkpoints)
-checkpoints/
-weights/
 *.pth
 *.pt
-*.onnx
-
-# 3. Môi trường ảo, thư mục cache và file tạm
-venv/
-.env/
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
-.pytest_cache/
-*.log
-
-# 4. Thư mục chạy thực nghiệm tạm thời
-experiments/
-predictions/
->>>>>>> main
+*.nii
+*.nii.gz
