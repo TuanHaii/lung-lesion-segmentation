@@ -33,8 +33,6 @@ def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> Any:
             rotate_limit=15,
             interpolation=cv2.INTER_LINEAR,
             border_mode=cv2.BORDER_CONSTANT,
-            value=0.0,
-            mask_value=0,
             p=0.5,
         ),
 
@@ -42,11 +40,8 @@ def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> Any:
         A.ElasticTransform(
             alpha=1,
             sigma=50,
-            alpha_affine=10,
             interpolation=cv2.INTER_LINEAR,
             border_mode=cv2.BORDER_CONSTANT,
-            value=0.0,
-            mask_value=0,
             p=0.3,
         ),
 
