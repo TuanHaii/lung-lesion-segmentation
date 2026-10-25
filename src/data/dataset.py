@@ -1,7 +1,17 @@
+from IPython.core import display_functions
 import csv
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import os
+
+try:
+    # Sử dụng hàm trong module os để tạo thư mục
+    os.mkdir("duong_dan_khong_hop_le/abc")
+except OSError as err:
+    # Nếu có sự cố từ OS, chương trình sẽ rơi vào đây thay vì bị crash
+    print(f"Đã xảy ra lỗi OSError: {err}")
 
 try:
     # pyrefly: ignore[missing-import]
