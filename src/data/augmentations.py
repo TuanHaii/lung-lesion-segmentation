@@ -1,11 +1,17 @@
-from typing import Tuple, Union
-import albumentations as A
-import cv2
+from typing import Tuple, Union, Optional, Any
+try:
+    import albumentations as A
+    import cv2
+except ImportError:
+    A = None
+    cv2 = None
+
 import numpy as np
 import torch
 
 
-def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> A.Compose:
+
+def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> Any:
     """Pipeline tăng cường dữ liệu dành riêng cho tập Training.
     
     Bao gồm:
@@ -13,6 +19,9 @@ def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> A.Compo
     - Small Rotation (+-15 độ), Shift, Scale
     - Elastic Transform mô phỏng biến dạng mô mềm phổi
     """
+    if A is None:
+        raise ImportError("Thư viện 'albumentations' chưa được cài đặt. Hãy chạy: pip install albumentations")
+
     return A.Compose([
         # 1. Lật ngang (mô phỏng đối xứng phổi trái - phải)
         A.HorizontalFlip(p=0.5),
@@ -46,18 +55,23 @@ def get_training_augmentation(img_size: Tuple[int, int] = (256, 256)) -> A.Compo
     ], additional_targets={"mask": "mask"})
 
 
-def get_validation_augmentation(img_size: Tuple[int, int] = (256, 256)) -> A.Compose:
+def get_validation_augmentation(img_size: Tuple[int, int] = (256, 256)):
     """Pipeline dành cho tập Validation và Test: Tuyệt đối không biến dạng hình học."""
+    if A is None:
+        raise ImportError("Thư viện 'albumentations' chưa được cài đặt. Hãy chạy: pip install albumentations")
+
     return A.Compose([
         A.Resize(img_size[0], img_size[1], interpolation=cv2.INTER_LINEAR),
     ], additional_targets={"mask": "mask"})
 
 
+
 def apply_augmentation(
-    transform: A.Compose,
+    transform: Any,
     image: np.ndarray,
     mask: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
+
     """Thực thi pipeline biến đổi đồng thời trên cặp ảnh CT và Binary Mask."""
     # Đảm bảo mask ở dạng uint8 để tránh lỗi nội suy nhãn
     mask_in = mask.astype(np.uint8) if mask.dtype != np.uint8 else mask

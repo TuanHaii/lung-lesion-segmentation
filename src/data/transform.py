@@ -1,9 +1,13 @@
 from pathlib import Path
 import sys
 from typing import Tuple, Union
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 # Đảm bảo nhận diện thư mục gốc của project
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -36,13 +40,22 @@ def resize_ct_pair(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Resize đồng bộ cặp ảnh CT và Mask.
 
-    - CT: Bilinear Interpolation (cv2.INTER_LINEAR)
-    - Mask: Nearest Neighbor (cv2.INTER_NEAREST) bảo toàn nhãn rời rạc
+    - CT: Bilinear Interpolation
+    - Mask: Nearest Neighbor bảo toàn nhãn rời rạc
     """
-    dsize = (target_size[1], target_size[0])  # (width, height)
-    resized_image = cv2.resize(image, dsize, interpolation=cv2.INTER_LINEAR)
-    resized_mask = cv2.resize(mask, dsize, interpolation=cv2.INTER_NEAREST)
-    return resized_image, resized_mask
+    if cv2 is not None:
+        dsize = (target_size[1], target_size[0])  # (width, height)
+        resized_image = cv2.resize(image, dsize, interpolation=cv2.INTER_LINEAR)
+        resized_mask = cv2.resize(mask, dsize, interpolation=cv2.INTER_NEAREST)
+        return resized_image, resized_mask
+    else:
+        # Fallback sử dụng PyTorch interpolate khi không có OpenCV
+        t_img = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).float()
+        t_msk = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0).float()
+        r_img = F.interpolate(t_img, size=target_size, mode="bilinear", align_corners=False)
+        r_msk = F.interpolate(t_msk, size=target_size, mode="nearest")
+        return r_img.squeeze().numpy(), r_msk.squeeze().numpy().astype(mask.dtype)
+
 
 
 def preprocess_slice(

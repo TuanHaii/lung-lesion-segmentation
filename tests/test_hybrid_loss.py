@@ -1,6 +1,19 @@
+import sys
+import os
+from pathlib import Path
 import torch
-import pytest
+try:
+    import pytest
+except ImportError:
+    pytest = None
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from src.losses.hybrid_loss import HybridLoss
+
+
 
 
 def test_hybrid_loss_gradient_flow():
@@ -36,3 +49,9 @@ def test_hybrid_loss_weight_scaling():
 
     expected_loss = 0.5 * l_bce + 0.5 * l_dice
     assert torch.isclose(l_hybrid, expected_loss, atol=1e-5), "Lỗi: Tính toán kết hợp tuyến tính bị sai!"
+
+
+if __name__ == "__main__":
+    test_hybrid_loss_gradient_flow()
+    test_hybrid_loss_weight_scaling()
+    print(">> ALL HYBRID LOSS TESTS PASSED SUCCESSFULLY! <<")

@@ -1,6 +1,19 @@
+import sys
+import os
+from pathlib import Path
 import torch
-import pytest
+try:
+    import pytest
+except ImportError:
+    pytest = None
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from src.losses.dice_loss import SoftDiceLoss
+
+
 
 
 def test_soft_dice_loss_gradient_flow():
@@ -63,3 +76,11 @@ def test_soft_dice_loss_empty_slices_edge_case():
 
     loss = criterion(correct_empty_logits, empty_targets)
     assert loss.item() < 0.01, f"Lỗi: Lát cắt rỗng dự đoán đúng phải có loss gần 0, nhận được: {loss.item()}"
+
+
+if __name__ == "__main__":
+    test_soft_dice_loss_gradient_flow()
+    test_soft_dice_loss_perfect_prediction()
+    test_soft_dice_loss_worst_prediction()
+    test_soft_dice_loss_empty_slices_edge_case()
+    print(">> ALL DICE LOSS TESTS PASSED SUCCESSFULLY! <<")
