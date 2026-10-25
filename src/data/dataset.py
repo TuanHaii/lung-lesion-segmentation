@@ -88,43 +88,56 @@ class LungCTDataset(Dataset):
         # 4. Bộ nhớ đệm RAM cho 3D volumes
         self._ct_cache: Dict[str, np.ndarray] = {}
         self._mask_cache: Dict[str, np.ndarray] = {}
+        self._path_cache: Dict[str, str] = {}
 
     def __len__(self) -> int:
         return len(self.samples)
 
     def _resolve_path(self, path: str) -> str:
         """Tự động phân giải đường dẫn volume trên máy cục bộ hoặc môi trường Kaggle."""
+        if path in self._path_cache:
+            return self._path_cache[path]
+
         p = Path(path)
         if p.exists():
+            self._path_cache[path] = str(p)
             return str(p)
 
         # 1. Kiểm tra raw_data_dir chỉ định hoặc biến môi trường
         if self.raw_data_dir:
             base_dir = Path(self.raw_data_dir)
-            candidates = [
-                base_dir / p.name,
-                base_dir / p.parent.name / p.name,
-                base_dir / str(p).replace("data/raw/", "").replace("data\\raw\\", ""),
-            ]
-            for c in candidates:
-                if c.exists():
-                    return str(c)
+            if base_dir.exists():
+                candidates = [
+                    base_dir / p,
+                    base_dir / p.name,
+                    base_dir / p.parent.name / p.name,
+                    base_dir / "data" / "raw" / p.parent.name / p.name,
+                    base_dir / str(p).replace("data/raw/", "").replace("data\\raw\\", ""),
+                ]
+                for c in candidates:
+                    if c.exists():
+                        self._path_cache[path] = str(c)
+                        return str(c)
+
+                # Tìm kiếm đệ quy trong base_dir nếu thư mục con bị lồng nhiều cấp
+                matches = list(base_dir.rglob(p.name))
+                if not matches:
+                    clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
+                    matches = list(base_dir.rglob(f"{clean_stem}.nii*"))
+                if matches:
+                    self._path_cache[path] = str(matches[0])
+                    return str(matches[0])
 
         # 2. Tìm tự động trong thư mục Kaggle (/kaggle/input)
         kaggle_root = Path("/kaggle/input")
         if kaggle_root.exists():
-            for dataset_dir in kaggle_root.iterdir():
-                if dataset_dir.is_dir():
-                    candidates = [
-                        dataset_dir / p.name,
-                        dataset_dir / p.parent.name / p.name,
-                        dataset_dir / "data" / "raw" / p.parent.name / p.name,
-                        dataset_dir / "ct_volumes" / p.name,
-                        dataset_dir / "ground_truth_masks" / p.name,
-                    ]
-                    for c in candidates:
-                        if c.exists():
-                            return str(c)
+            matches = list(kaggle_root.rglob(p.name))
+            if not matches:
+                clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
+                matches = list(kaggle_root.rglob(f"{clean_stem}.nii*"))
+            if matches:
+                self._path_cache[path] = str(matches[0])
+                return str(matches[0])
 
         return str(p)
 
