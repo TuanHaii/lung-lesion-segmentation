@@ -1,0 +1,4 @@
+patient_id,total_slices,tp,fp,fn,tn,patient_dice,patient_iou,patient_precision,patient_recall
+P_coronacases_002,124,0,0,0,8126464,1.0,1.0,1.0,1.0
+P_coronacases_007,104,0,0,0,6815744,1.0,1.0,1.0,1.0
+P_radiopaedia_27_86410_0,37,0,0,0,2424832,1.0,1.0,1.0,1.0
