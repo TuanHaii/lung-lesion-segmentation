@@ -17,14 +17,26 @@ class DiceLoss(nn.Module):
         return 1.0 - dice
 
 class HybridLoss(nn.Module):
-    def __init__(self, alpha=0.5, beta=0.5, eps=1e-5):
+    def __init__(
+        self,
+        bce_weight: float = 0.5,
+        dice_weight: float = 0.5,
+        alpha: float | None = None,
+        beta: float | None = None,
+        smooth: float = 1e-5,
+        eps: float | None = None,
+    ):
         super().__init__()
-        self.alpha = alpha
-        self.beta = beta
+        self.bce_weight = alpha if alpha is not None else bce_weight
+        self.dice_weight = beta if beta is not None else dice_weight
+        self.alpha = self.bce_weight
+        self.beta = self.dice_weight
+
+        smooth_val = eps if eps is not None else smooth
         self.bce = nn.BCEWithLogitsLoss()
-        self.dice = DiceLoss(eps=eps)
+        self.dice = DiceLoss(eps=smooth_val)
 
     def forward(self, logits, targets):
         bce_loss = self.bce(logits, targets)
         dice_loss = self.dice(logits, targets)
-        return self.alpha * bce_loss + self.beta * dice_loss
+        return self.bce_weight * bce_loss + self.dice_weight * dice_loss

@@ -55,3 +55,6 @@ if __name__ == "__main__":
     # Test nhanh cấu hình khởi tạo
     loss_fn = SoftDiceLoss(smooth=1e-5)
     print(f"SoftDiceLoss initialized with smooth={loss_fn.smooth}")
+
+# Alias for backward compatibility across modules
+DiceLoss = SoftDiceLoss

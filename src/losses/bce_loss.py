@@ -22,3 +22,7 @@ class BCELossWrapper(nn.Module):
             targets (torch.Tensor): Nhãn Ground Truth {0, 1} [B, 1, H, W]
         """
         return self.criterion(logits, targets.float())
+
+
+# Alias for backward compatibility and clean imports
+BCELoss = BCELossWrapper

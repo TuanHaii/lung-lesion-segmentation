@@ -1,6 +1,251 @@
-# DATASET SPECIFICATION DOCUMENT (v1.0)
+# 04_TECH_STACK_AND_DATASET.md
 
-## 1. Metadata tài liệu
+## 1. Mục đích
+
+Tài liệu này thống nhất **Tech Stack, Dataset và cấu hình dữ liệu** được sử dụng trong dự án.
+
+> **Cấu trúc:** Phần A — tổng quan tech stack & dataset; Phần B — Dataset Specification Document (v1.0, DATA-01, gộp từ file `Dataset_Specification_Doc.md`).
+
+---
+
+# PHẦN A — TỔNG QUAN TECH STACK & DATASET
+
+## 2. Tech Stack
+
+| Thành phần         | Công nghệ                       |
+| ------------------ | ------------------------------- |
+| Ngôn ngữ           | Python                          |
+| Deep Learning      | PyTorch                         |
+| Computer Vision    | OpenCV                          |
+| Xử lý dữ liệu      | NumPy, Pandas                   |
+| Visualization      | Matplotlib                      |
+| Demo Web           | Streamlit hoặc Gradio           |
+| Notebook           | Google Colab / Jupyter Notebook |
+| Quản lý mã nguồn   | Git + GitHub                    |
+| Quản lý tài liệu   | Markdown                        |
+| Tài liệu tham khảo | Zotero / EndNote                |
+
+### Vai trò chính
+
+- **PyTorch**: xây dựng, huấn luyện và đánh giá mô hình.
+- **OpenCV / NumPy**: xử lý ảnh và dữ liệu.
+- **Matplotlib**: trực quan hóa CT, mask và prediction.
+- **Streamlit / Gradio**: xây dựng demo phân đoạn.
+- **Git/GitHub**: quản lý source code và phiên bản.
+- **Google Colab**: môi trường training có GPU.
+
+---
+
+## 3. Dataset
+
+Dự án sử dụng **public dataset** về CT phổi và phân đoạn tổn thương.
+
+Dataset dự kiến:
+
+- COVID-19 CT Lung and Infection Segmentation Dataset.
+- Một subset phù hợp từ LIDC-IDRI / MedData theo phạm vi đề tài.
+
+### Dữ liệu cần có
+
+Mỗi mẫu cần đảm bảo có:
+
+```text
+CT Image
++
+Ground Truth Mask
+```
+
+Mask dùng để xác định vùng tổn thương cần phân đoạn.
+
+---
+
+## 4. Quy mô dữ liệu
+
+Mục tiêu sử dụng khoảng:
+
+```text
+1.500 – 2.000 2D CT slices
+```
+
+Tỷ lệ chia:
+
+| Tập        | Tỷ lệ |
+| ---------- | ----: |
+| Train      |   70% |
+| Validation |   15% |
+| Test       |   15% |
+
+**Lưu ý:** chia dữ liệu theo patient/volume, không chia độc lập từng slice.
+
+---
+
+## 5. Preprocessing
+
+Quy trình chuẩn:
+
+```text
+Raw CT
+  ↓
+HU Window
+  ↓
+Normalize
+  ↓
+Resize
+  ↓
+Augmentation
+  ↓
+Model Input
+```
+
+### Cấu hình
+
+| Thành phần        | Giá trị                  |
+| ----------------- | ------------------------ |
+| HU Window         | `[-1000, 400]`           |
+| Normalization     | `[0, 1]`                 |
+| Input Size        | `256×256` hoặc `512×512` |
+| Rotation          | Nhỏ                      |
+| Horizontal Flip   | Có thể sử dụng           |
+| Elastic Transform | Có thể sử dụng           |
+
+Augmentation chỉ áp dụng cho **Training Set**.
+
+---
+
+## 6. Mask
+
+Mask được chuẩn hóa về dạng phù hợp với bài toán binary segmentation:
+
+```text
+0 → Background
+1 → Lesion
+```
+
+Cần kiểm tra:
+
+- Kích thước ảnh và mask giống nhau.
+- Mask không bị lệch so với CT.
+- Giá trị mask đúng định dạng.
+- Không có dữ liệu lỗi hoặc thiếu mask.
+
+---
+
+## 7. DataLoader
+
+DataLoader phải đảm bảo:
+
+- Đọc đúng CT và mask tương ứng.
+- Áp dụng preprocessing thống nhất.
+- Augmentation chỉ áp dụng cho Training.
+- Validation/Test không sử dụng augmentation ngẫu nhiên.
+- Có thể truy xuất thông tin patient/volume để kiểm tra data split.
+
+---
+
+## 8. Models
+
+Ba mô hình chính:
+
+```text
+Standard U-Net
+Attention U-Net
+SegNet
+```
+
+Mục đích:
+
+- **U-Net**: baseline chính.
+- **Attention U-Net**: đánh giá tác động của Attention Gate.
+- **SegNet**: mô hình đối chứng để so sánh.
+
+---
+
+## 9. Training Configuration
+
+Các thông số training phải được lưu cho từng Experiment:
+
+```text
+Model
+Dataset
+Input Size
+Loss Function
+Optimizer
+Learning Rate
+Batch Size
+Epochs
+Augmentation
+Checkpoint
+```
+
+Loss dự kiến:
+
+```text
+Loss = α × BCE + β × Dice Loss
+```
+
+Các giá trị cụ thể của hyperparameter phải được ghi trong Experiment Log, không ghi cố định tại đây nếu chưa được thực nghiệm xác định.
+
+---
+
+## 10. Output
+
+Mỗi Experiment cần tạo được:
+
+```text
+Checkpoint
+Training Log
+Validation Metrics
+Test Metrics
+Prediction Masks
+Visualization
+Configuration
+```
+
+Cấu trúc tham khảo:
+
+```text
+experiments/
+└── EXP-ATTUNET-001/
+    ├── config.yaml
+    ├── train.log
+    ├── checkpoint.pth
+    ├── metrics.csv
+    ├── predictions/
+    └── README.md
+```
+
+---
+
+## 11. Quy tắc sử dụng dữ liệu
+
+1. Không đưa Test Set vào quá trình training.
+2. Không dùng Test Set để điều chỉnh hyperparameter.
+3. Không để cùng patient/volume xuất hiện ở nhiều tập.
+4. Không thay đổi preprocessing giữa các model khi đang thực hiện so sánh công bằng.
+5. Mọi thay đổi Dataset phải được ghi nhận.
+
+---
+
+## 12. Definition of Done
+
+Dataset và Tech Stack được xem là **Ready** khi:
+
+- [ ] Dataset được xác định rõ.
+- [ ] CT và mask tương ứng.
+- [ ] Dataset được kiểm tra lỗi.
+- [ ] Patient-level split hoàn tất.
+- [ ] Preprocessing hoạt động đúng.
+- [ ] DataLoader hoạt động đúng.
+- [ ] Môi trường training chạy được.
+- [ ] Có thể chạy một Experiment thử nghiệm.
+
+---
+
+# PHẦN B — DATASET SPECIFICATION DOCUMENT (v1.0, task DATA-01)
+
+Nguyên văn tiêu đề gốc: **DATASET SPECIFICATION DOCUMENT (v1.0)** — người phụ trách Đông, trạng thái baseline specification.
+
+## 13. Metadata tài liệu
 
 | Trường | Giá trị |
 | :--- | :--- |
@@ -15,9 +260,9 @@
 
 ---
 
-## 2. Tổng quan và tính hợp pháp nguồn dữ liệu
+## 14. Tổng quan và tính hợp pháp nguồn dữ liệu
 
-### 2.1. Định danh bộ dữ liệu
+### 14.1. Định danh bộ dữ liệu
 Bộ dữ liệu nghiên cứu chính là **COVID-19 CT Lung and Infection Segmentation Dataset**, được công bố trên Zenodo và được phân phối lại trên Kaggle. Phiên bản Zenodo chứa 20 CT scan COVID-19 có gán nhãn, bao gồm nhãn phổi trái, phổi phải và vùng nhiễm trùng/tổn thương. Nhãn được hai bác sĩ chẩn đoán hình ảnh thực hiện và được một bác sĩ có kinh nghiệm kiểm tra xác nhận.
 
 | Thuộc tính | Đặc tả |
@@ -37,7 +282,7 @@ Bộ dữ liệu nghiên cứu chính là **COVID-19 CT Lung and Infection Segme
 
 *Ghi chú:* Số lượng 20 CT volumes được xem là số ca gán nhãn của nguồn Zenodo. Số lượng lát cắt 2D sau trích xuất phải được xác định bằng manifest thực tế, không suy ra trực tiếp từ số volume hoặc từ các bản sao Kaggle.
 
-### 2.2. Giấy phép và điều kiện sử dụng
+### 14.2. Giấy phép và điều kiện sử dụng
 Nguồn Zenodo được ghi nhận dưới giấy phép **Creative Commons Attribution 4.0 International (CC BY 4.0)**. Việc sử dụng dữ liệu tuân thủ các điều kiện:
 * Sử dụng cho nghiên cứu học thuật và phát triển mô hình Attention U-Net.
 * Không sử dụng dữ liệu để đưa ra chẩn đoán lâm sàng trực tiếp.
@@ -45,7 +290,7 @@ Nguồn Zenodo được ghi nhận dưới giấy phép **Creative Commons Attri
 * Không phát hành lại dữ liệu gốc nếu không đáp ứng đầy đủ điều kiện của giấy phép và chính sách của kho dữ liệu.
 * Lưu giữ thông tin DOI, giấy phép, phiên bản dữ liệu và checksum trong hồ sơ provenance.
 
-### 2.3. Yêu cầu provenance
+### 14.3. Yêu cầu provenance
 Mỗi lần tiếp nhận dữ liệu phải ghi nhận tối thiểu:
 1. URL hoặc DOI nguồn tải.
 2. Ngày tải dữ liệu.
@@ -59,14 +304,14 @@ Mỗi lần tiếp nhận dữ liệu phải ghi nhận tối thiểu:
 
 ---
 
-## 3. Tiêu chí chọn lọc và trích xuất lát cắt 2D
+## 15. Tiêu chí chọn lọc và trích xuất lát cắt 2D
 
-### 3.1. Mục tiêu trích xuất
+### 15.1. Mục tiêu trích xuất
 Dữ liệu 3D được chuyển thành tập lát cắt 2D theo mặt phẳng ngang (axial plane) để huấn luyện và đánh giá mô hình phân đoạn tổn thương phổi:
 * **Quy mô đầu ra mục tiêu:** 1.500–2.000 lát cắt 2D đạt chuẩn, mỗi lát cắt gồm một ảnh CT đã tiền xử lý và một ground-truth mask tương ứng.
 * **Nguyên tắc phân định đơn vị:** Đơn vị độc lập để phân chia dữ liệu là bệnh nhân hoặc volume, không phải lát cắt. Lát cắt 2D chỉ là đơn vị huấn luyện sau khi phân chia bệnh nhân đã hoàn tất.
 
-### 3.2. Tiêu chí đưa vào (Inclusion Criteria)
+### 15.2. Tiêu chí đưa vào (Inclusion Criteria)
 * Lát cắt axial hợp lệ của CT ngực, có biểu hiện rõ của nhu mô phổi hoặc vùng lồng ngực liên quan.
 * Ảnh CT đọc được, không bị hỏng file hoặc sai kích thước.
 * Có mask tương ứng, căn chỉnh không gian hoàn toàn với ảnh và cùng kích thước mặt phẳng $x$-$y$.
@@ -74,7 +319,7 @@ Dữ liệu 3D được chuyển thành tập lát cắt 2D theo mặt phẳng n
 * Bổ sung tỷ lệ lát cắt phổi lành đạt chuẩn để mô hình học nền giải phẫu và giảm thiên lệch.
 * Thông tin không gian hợp lệ (spacing, orientation, slice index xác định được).
 
-### 3.3. Tiêu chí loại bỏ (Exclusion Criteria)
+### 15.3. Tiêu chí loại bỏ (Exclusion Criteria)
 * Nằm ngoài lồng ngực (cổ, bụng) hoặc chỉ chứa nền đen ngoài cơ thể.
 * Nhiễu nghiêm trọng, artifact kim loại hoặc cử động làm mất cấu trúc tổn thương.
 * Lỗi đọc NIfTI, lỗi giải nén hoặc lệch checksum.
@@ -82,7 +327,7 @@ Dữ liệu 3D được chuyển thành tập lát cắt 2D theo mặt phẳng n
 * Mask chứa giá trị bất thường ngoài tập nhãn quy định hoặc biên mask bị lỗi số hóa.
 * Lát cắt bị trùng lặp hoặc không thể xác định patient ID/volume nguồn.
 
-### 3.4. Phân bố lát cắt mục tiêu
+### 15.4. Phân bố lát cắt mục tiêu
 Duy trì sự cân bằng tương đối giữa:
 * Lát cắt có tổn thương và lát cắt phổi lành.
 * Tổn thương kính mờ (GGO) và tổn thương đông đặc (Consolidation).
@@ -90,7 +335,7 @@ Duy trì sự cân bằng tương đối giữa:
 
 > **Ràng buộc:** Tuyệt đối không cân bằng bằng cách sao chép lát cắt giữa các bệnh nhân hoặc đưa cùng một lát cắt vào nhiều split. Oversampling chỉ được thực hiện bên trong tập Training sau khi đã chia patient-level.
 
-### 3.5. Quy trình trích xuất axial
+### 15.5. Quy trình trích xuất axial
 1. Đọc CT volume và mask bằng thư viện NIfTI (`nibabel`).
 2. Kiểm tra shape, affine, orientation, voxel spacing và thứ tự trục.
 3. Chuẩn hóa định hướng về quy ước axial thống nhất.
@@ -99,7 +344,7 @@ Duy trì sự cân bằng tương đối giữa:
 6. Ghi thông tin vào manifest trước khi thực hiện resize hoặc augmentation.
 7. Xuất ảnh và mask đã xử lý vào `data/processed/`.
 
-### 3.6. Định danh mẫu và trường Manifest
+### 15.6. Định danh mẫu và trường Manifest
 Quy ước định danh mẫu:
 $$\text{sample\_id} = \text{\{patient\_id\}\_\{volume\_id\}\_z\{slice\_index:04d\}}$$
 *(Ví dụ: `P001_V001_z0128`)*
@@ -125,39 +370,39 @@ $$\text{sample\_id} = \text{\{patient\_id\}\_\{volume\_id\}\_z\{slice\_index:04d
 
 ---
 
-## 4. Đặc tả kỹ thuật tiền xử lý
+## 16. Đặc tả kỹ thuật tiền xử lý
 
-### 4.1. HU Windowing
+### 16.1. HU Windowing
 Ảnh CT cắt dải cường độ theo cửa sổ nhu mô phổi $[-1000, 400]$ HU để tối ưu độ tương phản giữa mô lành và tổn thương đông đặc/GGO:
 $$HU_{\text{clip}} = \min(\max(HU, -1000), 400)$$
 
-### 4.2. Chuẩn hóa ảnh (Normalization)
+### 16.2. Chuẩn hóa ảnh (Normalization)
 Sau khi clip dải HU, ảnh được co dãn tuyến tính (Min-Max scaling) về đoạn $[0, 1]$:
 $$I_{\text{norm}} = \frac{HU_{\text{clip}} - (-1000)}{400 - (-1000)} = \frac{HU_{\text{clip}} + 1000}{1400}$$
 * Kiểu dữ liệu lưu trữ chuẩn: `float32`.
 * Không áp dụng z-score cục bộ theo từng slice trong baseline nhằm giữ tính nhất quán tương đối của giá trị HU giữa các bệnh nhân.
 
-### 4.3. Kích thước không gian & Nội suy (Resizing)
+### 16.3. Kích thước không gian & Nội suy (Resizing)
 * **Kích thước chuẩn:** $256 \times 256$ pixels (kích thước thay thế: $512 \times 512$ pixels).
 * **Thuật toán nội suy ảnh CT:** Bilinear hoặc Bicubic interpolation.
 * **Thuật toán nội suy Mask:** **Nearest Neighbor** (bắt buộc để không làm nhòe biên nhãn và không sinh giá trị trung gian).
 
-### 4.4. Nhị phân hóa Ground-Truth Mask (Binary Mask)
+### 16.4. Nhị phân hóa Ground-Truth Mask (Binary Mask)
 Ground-truth mask đầu ra là mask nhị phân nghiêm ngặt:
 $$M_{\text{bin}}(x, y) = \begin{cases} 1, & \text{nếu pixel thuộc vùng tổn thương (Infection / GGO / Consolidation)} \\ 0, & \text{nền và nhu mô phổi không tổn thương} \end{cases}$$
 * Nhãn phổi trái và phổi phải không được coi là tổn thương.
 * Sau khi resize bằng Nearest Neighbor, toàn bộ giá trị mask phải thuộc tập $\{0, 1\}$ tuyệt đối.
 
-### 4.5. Data Augmentation
+### 16.5. Data Augmentation
 Augmentation không tạo sẵn vào dữ liệu nền của DATA-01 mà chỉ áp dụng on-the-fly trong tập huấn luyện:
 * Chỉ áp dụng cho tập **Training** sau khi đã phân chia patient-level; tập Validation và Test giữ nguyên bản.
 * Phép biến đổi hình học (xoay nhẹ $\pm 15^\circ$, lật ngang, elastic transform) phải áp dụng đồng thời và đồng bộ cho cả ảnh lẫn mask.
 
 ---
 
-## 5. Chiến lược phân chia Patient-level & Chống Data Leakage
+## 17. Chiến lược phân chia Patient-level & Chống Data Leakage
 
-### 5.1. Tỷ lệ phân chia
+### 17.1. Tỷ lệ phân chia
 
 | Split | Tỷ lệ mục tiêu | Quy tắc áp dụng |
 | :--- | :---: | :--- |
@@ -167,13 +412,13 @@ Augmentation không tạo sẵn vào dữ liệu nền của DATA-01 mà chỉ �
 
 *Số lượng bệnh nhân thực tế từ 20 volume gốc được chia theo số nguyên (ví dụ: 14 train / 3 val / 3 test) và cố định bằng random seed (seed = 2026).*
 
-### 5.2. Nguyên tắc chống rò rỉ dữ liệu (Zero Data Leakage)
+### 17.2. Nguyên tắc chống rò rỉ dữ liệu (Zero Data Leakage)
 1. **Cô lập cấp bệnh nhân:** Một `patient_id` chỉ xuất hiện trong duy nhất một split.
 2. Toàn bộ các lát cắt của cùng một volume/bệnh nhân phải nằm chung trong cùng một tập.
 3. Tuyệt đối không xáo trộn ngẫu nhiên (random shuffle) ở cấp độ slice.
 4. Tập Test bị khóa hoàn toàn, không tham gia vào chuẩn hóa hay tuning hyperparameter.
 
-### 5.3. Cấu trúc lưu trữ Split & Bàn giao QA-03
+### 17.3. Cấu trúc lưu trữ Split & Bàn giao QA-03
 * File phân bổ chính: `data/splits/splits.json` và `data/splits/splits.csv`.
 * **Điều kiện nghiệm thu QA-03:** Hào (QA) thực hiện kiểm toán độc lập xác nhận giao thoa giữa 3 tập bằng rỗng ($\text{Train} \cap \text{Val} \cap \text{Test} = \emptyset$) trước khi mở khóa huấn luyện.
 
@@ -192,7 +437,7 @@ Augmentation không tạo sẵn vào dữ liệu nền của DATA-01 mà chỉ �
 
 ---
 
-## 6. Sơ đồ tổ chức cấu trúc thư mục dữ liệu
+## 18. Sơ đồ tổ chức cấu trúc thư mục dữ liệu
 
 ```text
 project_root/
@@ -225,7 +470,7 @@ project_root/
 │       ├── summary_split.csv
 │       └── leakage_check_report.txt
 ├── docs/
-│   └── Dataset_Specification_Doc.md
+│   └── 04_TECH_STACK_AND_DATASET.md   (Phần B — Dataset Specification)
 └── reports/
     └── QA-03/
         └── QA_Report_Data_Leakage_Zero.md
@@ -233,9 +478,9 @@ project_root/
 
 ---
 
-## 7. Checklist nghiệm thu và chuyển giao
+## 19. Checklist nghiệm thu và chuyển giao
 
-### 7.1. Bảng chuyển giao công việc
+### 19.1. Bảng chuyển giao công việc
 
 | Task kế tiếp | Người nhận | Nội dung chuyển giao từ DATA-01 |
 | :--- | :--- | :--- |
@@ -244,8 +489,8 @@ project_root/
 | **DATA-05** | Đông | Cửa sổ HU $[-1000, 400]$, công thức Min-Max scaling $[0, 1]$. |
 | **QA-03** | Hào | Cấu trúc `splits.json`, danh sách Patient ID và script kiểm tra zero data leakage. |
 
-### 7.2. Điều kiện hoàn thành Task DATA-01
-* [x] Tài liệu `Dataset_Specification_Doc.md` đã được biên soạn hoàn chỉnh và đẩy lên `docs/`.
+### 19.2. Điều kiện hoàn thành Task DATA-01
+* [x] Đặc tả dataset (Phần B của tài liệu này) đã được biên soạn hoàn chỉnh và đẩy lên `docs/`.
 * [x] Đã xác định rõ giấy phép mở CC BY 4.0 và 20 volumes CT từ Zenodo.
 * [x] Đã thống nhất toàn bộ tham số tiền xử lý: HU $[-1000, 400]$, Min-Max $[0, 1]$, resize ảnh/mask (Nearest Neighbor cho mask).
 * [x] Đã thiết lập nguyên tắc phân chia 70/15/15 theo Patient-level để bảo vệ tính toàn vẹn nghiên cứu.

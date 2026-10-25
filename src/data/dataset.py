@@ -3,7 +3,11 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import nibabel as nib
+try:
+    import nibabel as nib
+except ImportError:
+    nib = None
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -29,6 +33,7 @@ class LungCTDataset(Dataset):
         target_size: Tuple[int, int] = (256, 256),
         lesion_label: int = 3,
         cache_volumes: bool = True,
+        raw_data_dir: Optional[str] = None,
     ):
         """Khởi tạo Dataset theo phân vùng tập dữ liệu.
 
@@ -46,12 +51,17 @@ class LungCTDataset(Dataset):
             Mã nhãn tổn thương trên mask thô (mặc định 3).
         cache_volumes : bool
             Lưu cache các 3D volume vào RAM để tối ưu tốc độ đọc đĩa.
+        raw_data_dir : Optional[str]
+            Thư mục chứa dữ liệu thô (cho Kaggle hoặc custom path).
         """
         assert split in ["train", "val", "test"], f"Split '{split}' không hợp lệ!"
         self.split = split
         self.target_size = target_size
         self.lesion_label = lesion_label
         self.cache_volumes = cache_volumes
+        import os
+        self.raw_data_dir = raw_data_dir or os.environ.get("RAW_DATA_DIR") or os.environ.get("KAGGLE_DATA_DIR")
+
 
         # 1. Đọc danh sách mẫu thuộc split từ JSON phân vùng
         with open(split_json_path, "r", encoding="utf-8") as f:
@@ -82,18 +92,64 @@ class LungCTDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
+    def _resolve_path(self, path: str) -> str:
+        """Tự động phân giải đường dẫn volume trên máy cục bộ hoặc môi trường Kaggle."""
+        p = Path(path)
+        if p.exists():
+            return str(p)
+
+        # 1. Kiểm tra raw_data_dir chỉ định hoặc biến môi trường
+        if self.raw_data_dir:
+            base_dir = Path(self.raw_data_dir)
+            candidates = [
+                base_dir / p.name,
+                base_dir / p.parent.name / p.name,
+                base_dir / str(p).replace("data/raw/", "").replace("data\\raw\\", ""),
+            ]
+            for c in candidates:
+                if c.exists():
+                    return str(c)
+
+        # 2. Tìm tự động trong thư mục Kaggle (/kaggle/input)
+        kaggle_root = Path("/kaggle/input")
+        if kaggle_root.exists():
+            for dataset_dir in kaggle_root.iterdir():
+                if dataset_dir.is_dir():
+                    candidates = [
+                        dataset_dir / p.name,
+                        dataset_dir / p.parent.name / p.name,
+                        dataset_dir / "data" / "raw" / p.parent.name / p.name,
+                        dataset_dir / "ct_volumes" / p.name,
+                        dataset_dir / "ground_truth_masks" / p.name,
+                    ]
+                    for c in candidates:
+                        if c.exists():
+                            return str(c)
+
+        return str(p)
+
     def _get_volume_data(self, ct_path: str, mask_path: str) -> Tuple[np.ndarray, np.ndarray]:
         """Tải dữ liệu 3D NIfTI kèm cơ chế đệm bộ nhớ."""
+        if nib is None:
+            raise ImportError(
+                "Thư viện 'nibabel' chưa được cài đặt. "
+                "Hãy chạy: 'pip install nibabel' (trên Kaggle: '!pip install -q nibabel')."
+            )
+
+        resolved_ct = self._resolve_path(ct_path)
+        resolved_mask = self._resolve_path(mask_path)
+
+
         if self.cache_volumes:
-            if ct_path not in self._ct_cache:
-                ct_nii = nib.load(ct_path)
-                mask_nii = nib.load(mask_path)
-                self._ct_cache[ct_path] = ct_nii.get_fdata(dtype=np.float32)
-                self._mask_cache[mask_path] = mask_nii.get_fdata(dtype=np.float32)
-            return self._ct_cache[ct_path], self._mask_cache[mask_path]
+            if resolved_ct not in self._ct_cache:
+                ct_nii = nib.load(resolved_ct)
+                mask_nii = nib.load(resolved_mask)
+                self._ct_cache[resolved_ct] = ct_nii.get_fdata(dtype=np.float32)
+                self._mask_cache[resolved_mask] = mask_nii.get_fdata(dtype=np.float32)
+            return self._ct_cache[resolved_ct], self._mask_cache[resolved_mask]
         else:
-            ct_nii = nib.load(ct_path)
-            mask_nii = nib.load(mask_path)
+            ct_nii = nib.load(resolved_ct)
+            mask_nii = nib.load(resolved_mask)
             return ct_nii.get_fdata(dtype=np.float32), mask_nii.get_fdata(dtype=np.float32)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
@@ -139,6 +195,7 @@ def get_dataloader(
     manifest_path: str = "data/processed/clean_slices_manifest.csv",
     split_json_path: str = "data/processed/splits_patient_level.json",
     cache_volumes: bool = True,
+    raw_data_dir: Optional[str] = None,
 ) -> DataLoader:
     """Khởi tạo PyTorch DataLoader tiêu chuẩn hóa cho huấn luyện và đánh giá."""
     is_train = split == "train"
@@ -150,6 +207,7 @@ def get_dataloader(
         split_json_path=split_json_path,
         split=split,
         cache_volumes=cache_volumes,
+        raw_data_dir=raw_data_dir,
     )
 
     loader = DataLoader(
@@ -160,4 +218,4 @@ def get_dataloader(
         pin_memory=pin_memory and torch.cuda.is_available(),
         drop_last=is_train,
     )
-    return loader
+    return loader
