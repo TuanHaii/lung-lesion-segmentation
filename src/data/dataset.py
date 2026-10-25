@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 try:
+    # pyrefly: ignore[missing-import]
     import nibabel as nib
 except ImportError:
     nib = None
@@ -124,7 +125,11 @@ class LungCTDataset(Dataset):
                 if not matches:
                     clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
                     matches = list(base_dir.rglob(f"{clean_stem}.nii*"))
-                if matches:
+                valid_matches = [m for m in matches if m.stat().st_size > 0]
+                if valid_matches:
+                    self._path_cache[path] = str(valid_matches[0])
+                    return str(valid_matches[0])
+                elif matches:
                     self._path_cache[path] = str(matches[0])
                     return str(matches[0])
 
@@ -135,14 +140,18 @@ class LungCTDataset(Dataset):
             if not matches:
                 clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
                 matches = list(kaggle_root.rglob(f"{clean_stem}.nii*"))
-            if matches:
+            valid_matches = [m for m in matches if m.stat().st_size > 0]
+            if valid_matches:
+                self._path_cache[path] = str(valid_matches[0])
+                return str(valid_matches[0])
+            elif matches:
                 self._path_cache[path] = str(matches[0])
                 return str(matches[0])
 
         return str(p)
 
     def _get_volume_data(self, ct_path: str, mask_path: str) -> Tuple[np.ndarray, np.ndarray]:
-        """Tải dữ liệu 3D NIfTI kèm cơ chế đệm bộ nhớ."""
+        """Tải dữ liệu 3D NIfTI kèm cơ chế đệm bộ nhớ và kiểm tra tính toàn vẹn."""
         if nib is None:
             raise ImportError(
                 "Thư viện 'nibabel' chưa được cài đặt. "
@@ -152,6 +161,16 @@ class LungCTDataset(Dataset):
         resolved_ct = self._resolve_path(ct_path)
         resolved_mask = self._resolve_path(mask_path)
 
+        # Kiểm tra tính toàn vẹn của file (kích thước khác 0 byte)
+        for target_path, label in [(resolved_ct, "Ảnh CT"), (resolved_mask, "Mask nhãn")]:
+            if not os.path.exists(target_path):
+                raise FileNotFoundError(f"[!] Không tìm thấy file {label}: '{target_path}'")
+            if os.path.getsize(target_path) == 0:
+                raise ValueError(
+                    f"\n[X] File {label} '{target_path}' có dung lượng 0 bytes (bị rỗng)!\n"
+                    f"-> Nguyên nhân: Quá trình nén hoặc tải dataset lên Kaggle bị gián đoạn/lỗi.\n"
+                    f"-> Khắc phục: Vui lòng kiểm tra lại file gốc và tải lại dataset lên Kaggle."
+                )
 
         if self.cache_volumes:
             if resolved_ct not in self._ct_cache:
@@ -231,4 +250,4 @@ def get_dataloader(
         pin_memory=pin_memory and torch.cuda.is_available(),
         drop_last=is_train,
     )
-    return loader
+    return loader
