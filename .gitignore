@@ -3,9 +3,15 @@ __pycache__/
 *$py.class
 venv/
 env/
+.venv/
 .vscode/
 .idea/
 *.pth
 *.pt
 *.nii
 *.nii.gz
+*.zip
+*.tar.gz
+*.rar
+checkpoints/*.zip
+checkpoints/*.pth
