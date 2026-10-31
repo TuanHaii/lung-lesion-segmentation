@@ -41,7 +41,7 @@ class LungCTDataset(Dataset):
         split_json_path: str = "data/processed/splits_patient_level.json",
         split: str = "train",
         target_size: Tuple[int, int] = (256, 256),
-        lesion_label: int = 3,
+        lesion_label: int = 1,
         cache_volumes: bool = True,
         raw_data_dir: Optional[str] = None,
     ):
@@ -237,6 +237,7 @@ def get_dataloader(
     split_json_path: str = "data/processed/splits_patient_level.json",
     cache_volumes: bool = True,
     raw_data_dir: Optional[str] = None,
+    lesion_label: int = 1,
 ) -> DataLoader:
     """Khởi tạo PyTorch DataLoader tiêu chuẩn hóa cho huấn luyện và đánh giá."""
     is_train = split == "train"
@@ -249,6 +250,7 @@ def get_dataloader(
         split=split,
         cache_volumes=cache_volumes,
         raw_data_dir=raw_data_dir,
+        lesion_label=lesion_label,
     )
 
     loader = DataLoader(

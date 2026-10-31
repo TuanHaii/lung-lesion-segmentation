@@ -149,6 +149,7 @@ def main():
     # 3. Khởi tạo DataLoaders
     num_workers = config.get("data", {}).get("num_workers", 2)
     pin_memory = config.get("data", {}).get("pin_memory", True)
+    lesion_label = config.get("data", {}).get("lesion_label", 1)
 
     print(">> Initializing Train and Validation DataLoaders...")
     train_loader = get_dataloader(
@@ -157,6 +158,7 @@ def main():
         num_workers=num_workers,
         pin_memory=pin_memory,
         raw_data_dir=raw_data_dir,
+        lesion_label=lesion_label,
     )
     val_loader = get_dataloader(
         split="val",
@@ -164,6 +166,7 @@ def main():
         num_workers=num_workers,
         pin_memory=pin_memory,
         raw_data_dir=raw_data_dir,
+        lesion_label=lesion_label,
     )
     print(f"   [+] Train samples: {len(train_loader.dataset)} ({len(train_loader)} batches)")
     print(f"   [+] Val samples  : {len(val_loader.dataset)} ({len(val_loader)} batches)")

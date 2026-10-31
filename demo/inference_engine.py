@@ -94,23 +94,47 @@ def preprocess_image(
     window_name: str = "lung",
     custom_range: Optional[Tuple[float, float]] = None
 ) -> Tuple[torch.Tensor, np.ndarray]:
-    """Tiền xử lý ảnh CT 2D: HU Windowing -> Resize -> Tensor (1, 1, H, W)."""
-    # 1. Windowing
-    ct_norm = apply_windowing(image, window_name=window_name, custom_range=custom_range)
+    """Tiền xử lý ảnh CT linh hoạt theo định dạng đầu vào."""
+    # Đảm bảo ảnh là mảng 2D (Grayscale)
+    if image.ndim == 3:
+        if image.shape[-1] in [3, 4]:
+            image = np.mean(image[..., :3], axis=-1)
+        elif image.shape[0] in [1, 3]:
+            image = np.mean(image[:3, ...], axis=0)
+        else:
+            image = image.squeeze()
 
-    # 2. Resize về target_size (256, 256)
+    # Nhận diện nếu ảnh đầu vào là ảnh thông thường 8-bit [0, 255] (PNG/JPG display)
+    if image.min() >= 0.0 and image.max() > 1.0 and image.max() <= 255.0:
+        ct_norm = (image / 255.0).astype(np.float32)
+    elif image.min() < 0.0 or image.max() > 255.0:
+        # Ảnh CT NIfTI thô chứa giá trị HU thực: áp dụng HU Windowing
+        ct_norm = apply_windowing(image, window_name=window_name, custom_range=custom_range)
+    else:
+        # Ảnh đã nằm sẵn trong khoảng [0, 1]
+        ct_norm = image.astype(np.float32)
+
+    # Resize về target_size (256, 256) không phụ thuộc cv2
     if ct_norm.shape != target_size:
-        pil_img = Image.fromarray((ct_norm * 255).astype(np.uint8))
-        pil_resized = pil_img.resize(target_size, Image.Resampling.BILINEAR)
-        ct_resized = np.array(pil_resized, dtype=np.float32) / 255.0
+        try:
+            import cv2
+            dsize = (target_size[1], target_size[0])
+            ct_resized = cv2.resize(ct_norm, dsize, interpolation=cv2.INTER_LINEAR)
+        except ImportError:
+            # Fallback sử dụng PyTorch interpolate khi chưa cài đặt OpenCV
+            t_norm = torch.from_numpy(ct_norm).unsqueeze(0).unsqueeze(0).float()
+            t_resized = torch.nn.functional.interpolate(
+                t_norm, size=target_size, mode="bilinear", align_corners=False
+            )
+            ct_resized = t_resized.squeeze().numpy()
     else:
         ct_resized = ct_norm
 
-    # 3. Chuyển thành PyTorch Tensor: [1, 1, H, W]
+    # Đưa về Tensor chuẩn [1, 1, H, W]
     tensor = torch.from_numpy(ct_resized).unsqueeze(0).unsqueeze(0).float()
     return tensor, ct_resized
 
-
+    
 @torch.no_grad()
 def run_inference(
     model: nn.Module,
