@@ -18,8 +18,8 @@
 | **Attention U-Net** | **0.7580** | **0.8415** | **0.7620** |
 
 ## 3. Phân tích Định tính (Qualitative Findings)
-*   **Đối với tổn thương GGO (Liên hệ RQ1):** Standard U-Net và SegNet gặp hiện tượng "Under-segmentation" (Phân đoạn thiếu) nghiêm trọng do tín hiệu của GGO yếu và ranh giới nhòe đi sau các lớp Max-Pooling. Attention U-Net nhờ Attention Gate đã khuếch đại thành công các dải đặc trưng cục bộ (local features) có độ tương phản thấp, cải thiện đáng kể kết quả Dice đối với vùng GGO[cite: 3, 4].
-*   **Đối với tổn thương Consolidation (Liên hệ RQ2):** Mật độ pixel cao giúp cả 3 mô hình đều đạt điểm Dice > 0.8. Tuy nhiên, SegNet sử dụng Max-Unpooling Indices thể hiện sự sắc nét ở ranh giới đông đặc tốt hơn U-Net chuẩn[cite: 3, 4]. Attention U-Net tiếp tục duy trì ưu thế tổng thể do triệt tiêu được nhiễu nền từ các mô lân cận.
+*   **Đối với tổn thương GGO (Liên hệ RQ1):** Standard U-Net và SegNet gặp hiện tượng "Under-segmentation" (Phân đoạn thiếu) nghiêm trọng do tín hiệu của GGO yếu và ranh giới nhòe đi sau các lớp Max-Pooling. Attention U-Net nhờ Attention Gate đã khuếch đại thành công các dải đặc trưng cục bộ (local features) có độ tương phản thấp, cải thiện đáng kể kết quả Dice đối với vùng GGO[cite: 2, 4].
+*   **Đối với tổn thương Consolidation (Liên hệ RQ2):** Mật độ pixel cao giúp cả 3 mô hình đều đạt điểm Dice > 0.8. Tuy nhiên, SegNet sử dụng Max-Unpooling Indices thể hiện sự sắc nét ở ranh giới đông đặc tốt hơn U-Net chuẩn[cite: 2, 4]. Attention U-Net tiếp tục duy trì ưu thế tổng thể do triệt tiêu được nhiễu nền từ các mô lân cận.
 
 ## 4. Kết luận
 Đặc tính cấu trúc của Attention U-Net giải quyết hiệu quả điểm yếu chí mạng của mạng CNN truyền thống khi đối mặt với các tổn thương có ranh giới mờ (GGO). Việc tách bạch hiệu năng theo bệnh học cung cấp cái nhìn sâu sắc, chứng minh tính ứng dụng lâm sàng của Attention Mechanism trong bài toán phân tích ảnh Y tế.
