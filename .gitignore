@@ -15,3 +15,8 @@ env/
 *.rar
 checkpoints/*.zip
 checkpoints/*.pth
+
+# Generated W5 artifacts (large; regenerate with scripts/build_slice_cache.py
+# and scripts/export_predictions.py)
+data/processed/slice_cache/
+predictions/**/*.npy

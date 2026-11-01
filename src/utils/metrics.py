@@ -2,10 +2,13 @@ import torch
 
 def compute_metrics(pred_mask, true_mask, threshold=0.5, smooth=1e-6):
     """
-    pred_mask: logits hoặc probabilities tensor [B, 1, H, W]
+    pred_mask: logits tensor [B, 1, H, W]
     true_mask: binary ground truth tensor [B, 1, H, W]
     """
-    probs = torch.sigmoid(pred_mask) if pred_mask.max() > 1.0 or pred_mask.min() < 0.0 else pred_mask
+    # The training/validation loop always passes raw logits.  Always apply
+    # sigmoid here; the old value-based heuristic silently skipped it while
+    # logits were still small, which made early-epoch validation metrics wrong.
+    probs = torch.sigmoid(pred_mask)
     preds = (probs > threshold).float()
     
     preds = preds.view(-1)

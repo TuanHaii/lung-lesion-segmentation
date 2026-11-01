@@ -1,0 +1,12 @@
+{
+  "model": "UNet",
+  "checkpoint": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/checkpoints/EXP-UNET-001_best.pth",
+  "split": "test",
+  "manifest": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/data/processed/test_manifest.json",
+  "lesion_label": 1,
+  "threshold": 0.5,
+  "binary": false,
+  "exported_slices": 265,
+  "created_at_utc": "2026-11-01T05:44:00.878688+00:00",
+  "device": "cuda"
+}

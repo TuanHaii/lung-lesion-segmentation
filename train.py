@@ -41,19 +41,27 @@ def build_model(model_cfg: dict) -> nn.Module:
         raise ValueError(f"Mô hình không được hỗ trợ: {model_name}. Lựa chọn: AttentionUNet, UNet, SegNet.")
 
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device):
+def train_one_epoch(model, dataloader, criterion, optimizer, device, scaler=None):
     model.train()
     running_loss = 0.0
+    use_amp = scaler is not None and scaler.is_enabled()
 
     for images, masks, _ in tqdm(dataloader, desc="Training", leave=False):
         images = images.to(device, dtype=torch.float32)
         masks = masks.to(device, dtype=torch.float32)
 
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, masks)
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
+        with torch.amp.autocast("cuda", enabled=use_amp):
+            outputs = model(images)
+            loss = criterion(outputs, masks)
+
+        if use_amp:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         running_loss += loss.item() * images.size(0)
 
@@ -61,7 +69,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
 
 
 @torch.no_grad()
-def validate(model, dataloader, criterion, device):
+def validate(model, dataloader, criterion, device, use_amp=False):
     model.eval()
     running_loss = 0.0
     total_dice = 0.0
@@ -74,8 +82,9 @@ def validate(model, dataloader, criterion, device):
         images = images.to(device, dtype=torch.float32)
         masks = masks.to(device, dtype=torch.float32)
 
-        outputs = model(images)
-        loss = criterion(outputs, masks)
+        with torch.amp.autocast("cuda", enabled=use_amp):
+            outputs = model(images)
+            loss = criterion(outputs, masks)
 
         batch_size = images.size(0)
         running_loss += loss.item() * batch_size
@@ -110,6 +119,13 @@ def main():
     parser.add_argument("--batch_size", type=int, default=None, help="Override batch size")
     parser.add_argument("--lr", type=float, default=None, help="Override learning rate")
     parser.add_argument("--device", type=str, default=None, help="Execution device (cuda or cpu)")
+    parser.add_argument("--amp", action="store_true", help="Enable mixed precision on CUDA (lower VRAM, faster)")
+    parser.add_argument(
+        "--cache_dir",
+        type=str,
+        default=None,
+        help="Use the compact 2D slice cache (scripts/build_slice_cache.py) instead of NIfTI volumes",
+    )
     args = parser.parse_args()
 
 
@@ -152,27 +168,49 @@ def main():
     lesion_label = config.get("data", {}).get("lesion_label", 1)
 
     print(">> Initializing Train and Validation DataLoaders...")
-    train_loader = get_dataloader(
-        split="train",
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        raw_data_dir=raw_data_dir,
-        lesion_label=lesion_label,
-    )
-    val_loader = get_dataloader(
-        split="val",
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        raw_data_dir=raw_data_dir,
-        lesion_label=lesion_label,
-    )
+    if args.cache_dir:
+        from src.data.slice_cache import get_cached_dataloader
+
+        train_loader = get_cached_dataloader(
+            args.cache_dir,
+            "train",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+        )
+        val_loader = get_cached_dataloader(
+            args.cache_dir,
+            "val",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+        )
+    else:
+        train_loader = get_dataloader(
+            split="train",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            raw_data_dir=raw_data_dir,
+            lesion_label=lesion_label,
+        )
+        val_loader = get_dataloader(
+            split="val",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            raw_data_dir=raw_data_dir,
+            lesion_label=lesion_label,
+        )
     print(f"   [+] Train samples: {len(train_loader.dataset)} ({len(train_loader)} batches)")
     print(f"   [+] Val samples  : {len(val_loader.dataset)} ({len(val_loader)} batches)")
 
     # 4. Khởi tạo Mô hình, Loss, Optimizer, Scheduler
     model = build_model(config.get("model", {})).to(device)
+
+    use_amp = bool(args.amp and device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp) if device.type == "cuda" else None
+    print(f">> Mixed precision (AMP): {use_amp}")
 
     # Cấu hình Loss
     loss_cfg = config.get("training", {}).get("loss", {})
@@ -188,7 +226,7 @@ def main():
 
     # Scheduler
     sched_cfg = config.get("training", {}).get("scheduler", {})
-    t_max = sched_cfg.get("T_max", epochs)
+    t_max = min(sched_cfg.get("T_max", epochs), epochs)
     eta_min = sched_cfg.get("eta_min", 1e-6)
     scheduler = CosineAnnealingLR(optimizer, T_max=t_max, eta_min=eta_min)
 
@@ -204,8 +242,8 @@ def main():
     for epoch in range(1, epochs + 1):
         start_time = time.time()
 
-        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_metrics = validate(model, val_loader, criterion, device)
+        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device, scaler)
+        val_metrics = validate(model, val_loader, criterion, device, use_amp=use_amp)
 
         scheduler.step()
         current_lr = optimizer.param_groups[0]["lr"]
