@@ -9,3 +9,4 @@ env/
 *.pt
 *.nii
 *.nii.gz
+/lung-lesion-segmentation/
