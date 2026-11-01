@@ -1,6 +1,6 @@
 {
   "dataset_version": "v1.0-frozen",
-  "freeze_timestamp_utc": "2026-10-09T08:53:19.617770+00:00",
+  "freeze_timestamp_utc": "2026-11-01T06:28:44.988211+00:00",
   "project": "CT Lung Lesion Segmentation via Attention U-Net",
   "specifications": {
     "target_resolution": [
@@ -61,20 +61,20 @@
       "size_bytes": 2282
     },
     "src/data/transform.py": {
-      "sha256": "471ae651640b5d85c21067985854711846e4c43c2d565c7a514ec7be450b1cf7",
-      "size_bytes": 3653
+      "sha256": "70eddf589cd71adf5bb8ee6901f1e43ef25625f4a058f29a8c96e62c2eb3ff90",
+      "size_bytes": 4208
     },
     "src/data/mask_binarize.py": {
-      "sha256": "ee55058f02a6965feea1f070df7f29008643f45289c9dde9d0781cbdee92ea7e",
-      "size_bytes": 2593
+      "sha256": "dc66cca6bdccaa6bf4fbc22d45648a39182e60a09423a0e9468e22903be17ca4",
+      "size_bytes": 4026
     },
     "src/data/augmentations.py": {
-      "sha256": "80714943292fd8f653893b342861ca4093d4f0dfc4b167612eb366ef6dca8472",
-      "size_bytes": 3896
+      "sha256": "5e9bd8fd9d053579513d556747082d4d43fafe77ace55d456808f86fe2c34b1f",
+      "size_bytes": 4114
     },
     "src/data/dataset.py": {
-      "sha256": "30a030564a6dc85f533f1defbe816f6ca55a009b263a36996231502cf3bd172a",
-      "size_bytes": 6155
+      "sha256": "6ab09cb87669849ddd9742056b2e30b7afe7afba89eaaf00d5c8ff173cf43278",
+      "size_bytes": 10394
     },
     "data/processed/clean_slices_manifest.csv": {
       "sha256": "7e3f6dadfef2862f5d0306fc66aef686c1eb24d37e1bf62e9fbb1e11b0cc14d6",

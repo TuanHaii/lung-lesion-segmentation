@@ -1,3 +1,4 @@
+import argparse
 import csv
 from pathlib import Path
 import nibabel as nib
@@ -21,12 +22,61 @@ def sample_evenly(items, target_count):
     return [items[i] for i in indices]
 
 
+def resolve_lesion_label(mask_data):
+    """Tự nhận diện nhãn tổn thương theo phiên bản mask.
+
+    - Infection_Mask (bộ đang dùng): nhị phân {0, 1} -> nhãn 1.
+    - Lung_and_Infection_Mask: đa lớp {0, 1, 2, 3} -> nhãn 3.
+    """
+    labels = {int(v) for v in np.unique(mask_data)}
+    return 3 if 3 in labels else 1
+
+
 def main():
-    ct_dir = Path("data/raw/ct_volumes")
-    mask_dir = Path("data/raw/ground_truth_masks")
-    manifest_dir = Path("data/processed")
-    manifest_dir.mkdir(parents=True, exist_ok=True)
-    manifest_file = manifest_dir / "clean_slices_manifest.csv"
+    parser = argparse.ArgumentParser(
+        description="DATA-04: lọc lát cắt 2D hợp lệ và tạo clean_slices_manifest.csv"
+    )
+    parser.add_argument(
+        "--ct-dir",
+        type=Path,
+        default=Path("data/raw/ct_volumes"),
+        help="Thư mục CT volumes (.nii/.nii.gz)",
+    )
+    parser.add_argument(
+        "--mask-dir",
+        type=Path,
+        default=Path("data/raw/ground_truth_masks"),
+        help=(
+            "Thư mục mask. Manifest v1.0 được tạo từ mask đa lớp "
+            "Lung_and_Infection_Mask (nhãn phổi 1/2, tổn thương 3). "
+            "data/raw/ground_truth_masks hiện là tập infection nhị phân {0,1}."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("data/processed/clean_slices_manifest.csv"),
+        help="Đường dẫn file manifest đầu ra",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Cho phép ghi đè manifest đã đóng băng (mặc định từ chối)",
+    )
+    args = parser.parse_args()
+
+    ct_dir = args.ct_dir
+    mask_dir = args.mask_dir
+    manifest_file = args.output
+    manifest_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if manifest_file.exists() and not args.force:
+        print(
+            f"[!] Manifest đã tồn tại: {manifest_file}\n"
+            "    Đây là dữ liệu đã đóng băng v1.0; không ghi đè tự động.\n"
+            "    Nếu thực sự muốn tạo lại, chạy lại với --force."
+        )
+        return
 
     ct_files = sorted(list(ct_dir.glob("*.nii*")))
     mask_files = sorted(list(mask_dir.glob("*.nii*")))
@@ -38,7 +88,6 @@ def main():
     # Tham số chuẩn y tế
     MIN_LUNG_AREA_PX = 3000  # Bỏ lát cắt ngoài ngực, đỉnh phổi và đáy bụng
     MIN_LESION_PX = 15  # Khử nhiễu gán nhãn li ti
-    LESION_LABEL = 3  # Nhãn 3 là vùng nhiễm trùng / tổn thương
 
     TARGET_LESION_SLICES = 1450
     TARGET_NORMAL_SLICES = 300
@@ -78,6 +127,7 @@ def main():
 
         ct_data = ct_nii.get_fdata(dtype=np.float32)
         mask_data = mask_nii.get_fdata(dtype=np.float32)
+        lesion_label = resolve_lesion_label(mask_data)
         zooms = ct_nii.header.get_zooms()
 
         num_slices = ct_data.shape[2]
@@ -97,7 +147,7 @@ def main():
             if lung_area < MIN_LUNG_AREA_PX:
                 continue
 
-            lesion_pixels = int(np.sum(mask_slice == LESION_LABEL))
+            lesion_pixels = int(np.sum(mask_slice == lesion_label))
             is_lesion = 1 if lesion_pixels >= MIN_LESION_PX else 0
 
             record = {

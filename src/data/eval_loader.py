@@ -8,7 +8,7 @@ Mục đích:
 - Tuân thủ nghiêm ngặt đặc tả tiền xử lý y khoa v1.0:
   + HU Windowing [-1000, 400]
   + Min-Max scaling về đoạn [0.0, 1.0]
-  + Nhị phân hóa Ground Truth Mask về {0, 1} (lesion_label=3)
+  + Nhị phân hóa Ground Truth Mask về {0, 1} (lesion_label=1; tự fallback từ 3 cho mask đa lớp)
   + Resize về kích thước chuẩn (256, 256): Bilinear cho ảnh CT, Nearest Neighbor cho mask
   + Tuyệt đối KHÔNG áp dụng Data Augmentation (chỉ giữ nguyên ảnh gốc chuẩn hóa)
 - Thiết lập bắt buộc: batch_size = 1 và shuffle = False (phản ánh chẩn đoán lâm sàng tuần tự)

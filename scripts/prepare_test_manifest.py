@@ -284,7 +284,7 @@ def prepare_test_manifest(
                 "target_resolution": [256, 256],
                 "hu_window_range": [-1000.0, 400.0],
                 "normalization": "Min-Max [0.0, 1.0]",
-                "mask_type": "Binary {0, 1} (1: Lesion/Infection, lesion_label=3)",
+                "mask_type": "Binary {0, 1} (1: Lesion/Infection, lesion_label=1)",
                 "interpolation_image": "Bilinear (cv2.INTER_LINEAR)",
                 "interpolation_mask": "Nearest Neighbor (cv2.INTER_NEAREST)",
                 "batch_size": 1,
