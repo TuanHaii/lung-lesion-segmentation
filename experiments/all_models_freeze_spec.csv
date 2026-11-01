@@ -1,0 +1,4 @@
+experiment_id,model_name,total_parameters,hardware_spec,train_time_per_epoch,optimizer,learning_rate,batch_size,epochs,checkpoint_path,config_hash
+EXP-UNET-001,Standard U-Net,1945537,Google Colab T4 GPU,45s,Adam,0.0001,16,50,checkpoints/unet_best.pth,hash_unet_001
+EXP-SEGNET-001,SegNet,2944321,Google Colab T4 GPU,52s,Adam,0.0001,16,50,checkpoints/segnet_best.pth,hash_segnet_001
+EXP-ATTUNET-001,Attention U-Net,3488210,Google Colab T4 GPU,68s,AdamW,0.0001,16,100,checkpoints/EXP-ATTUNET-001_best.pth,hash_attunet_001
