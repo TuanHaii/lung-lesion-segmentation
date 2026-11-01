@@ -13,9 +13,7 @@ def generate_complex_lesion_mock():
     """Tạo dữ liệu mô phỏng tổn thương gần mạch máu lớn/thành ngực để đánh giá ranh giới."""
     h, w = 128, 128
     ct = np.full((h, w), -800.0, dtype=np.float32)
-    gt = np.zeros((h, w), dtype=np.uint8)
-    unet = np.zeros((h, w), dtype=np.uint8)
-    att_unet = np.zeros((h, w), dtype=np.uint8)
+    gt, unet, att_unet = [np.zeros((h, w), dtype=np.uint8) for _ in range(3)]
     
     y, x = np.ogrid[:h, :w]
     
