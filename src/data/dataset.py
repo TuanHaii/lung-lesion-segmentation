@@ -23,6 +23,7 @@ from src.data.augmentations import (
 from src.data.hu_window import apply_hu_window
 from src.data.mask_binarize import binarize_mask
 from src.data.transform import normalize_min_max
+from src.utils.seed import seed_worker
 
 
 class LungCTDataset(Dataset):
@@ -253,5 +254,6 @@ def get_dataloader(
         num_workers=num_workers,
         pin_memory=pin_memory and torch.cuda.is_available(),
         drop_last=is_train,
+        worker_init_fn=seed_worker if num_workers > 0 else None,
     )
     return loader

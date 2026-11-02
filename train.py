@@ -20,6 +20,7 @@ from src.models.segnet import SegNet
 from src.losses.hybrid_loss import HybridLoss
 from src.data.dataset import get_dataloader
 from src.utils.metrics import compute_metrics
+from src.utils.seed import set_seed, seed_worker
 
 
 def build_model(model_cfg: dict) -> nn.Module:
@@ -119,6 +120,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=None, help="Override batch size")
     parser.add_argument("--lr", type=float, default=None, help="Override learning rate")
     parser.add_argument("--device", type=str, default=None, help="Execution device (cuda or cpu)")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility (default: 2026)")
     parser.add_argument("--amp", action="store_true", help="Enable mixed precision on CUDA (lower VRAM, faster)")
     parser.add_argument(
         "--cache_dir",
@@ -137,6 +139,10 @@ def main():
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    # 1.1 Khởi tạo hạt giống ngẫu nhiên đảm bảo tính tái lập (Reproducibility)
+    seed = args.seed or config.get("training", {}).get("seed", 2026)
+    set_seed(seed)
+
     # 2. Xử lý ghi đè cấu hình từ arguments
     exp_id = config.get("experiment", {}).get("id") or config.get("experiment_name", "EXP-001")
     epochs = args.epochs or config.get("training", {}).get("epochs") or config.get("train", {}).get("epochs", 50)
@@ -152,6 +158,7 @@ def main():
     print("=" * 70)
     print(f">> Starting Experiment: {exp_id}")
     print(f">> Device              : {device}")
+    print(f">> Random Seed        : {seed}")
     print(f">> Epochs              : {epochs} | Batch Size: {batch_size} | LR: {lr}")
     if raw_data_dir:
         print(f">> Raw Data Dir        : {raw_data_dir}")
