@@ -18,6 +18,12 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ["utf-8", "utf8"]:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, io.UnsupportedOperation):
+        pass
+
 try:
     from scipy.stats import wilcoxon
 except ImportError:
