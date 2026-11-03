@@ -1,12 +1,14 @@
 {
-  "model": "SegNet",
-  "checkpoint": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/checkpoints/EXP-SEGNET-001_best.pth",
-  "split": "test",
-  "manifest": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/data/processed/test_manifest.json",
-  "lesion_label": 1,
+  "model_name": "SegNet",
+  "checkpoint": "/kaggle/working/EXP-SEGNET-002_best.pth",
+  "parameters": 2346433,
+  "checkpoint_size_mb": 9.0,
+  "total_samples": 265,
+  "latency_mean_ms": 5.83,
+  "latency_std_ms": 1.07,
+  "latency_min_ms": 3.5,
+  "latency_max_ms": 6.8,
   "threshold": 0.5,
-  "binary": false,
-  "exported_slices": 265,
-  "created_at_utc": "2026-11-01T05:44:07.358800+00:00",
+  "timestamp_utc": "2026-11-03T11:02:50.144008+00:00",
   "device": "cuda"
 }

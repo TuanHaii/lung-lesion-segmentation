@@ -1,12 +1,14 @@
 {
-  "model": "AttentionUNet",
-  "checkpoint": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/checkpoints/EXP-ATTUNET-001_best.pth",
-  "split": "test",
-  "manifest": "/home/dyspo/DTH235628/ttnt/lung-lesion-segmentation/data/processed/test_manifest.json",
-  "lesion_label": 1,
+  "model_name": "AttentionUNet",
+  "checkpoint": "/kaggle/working/lung-lesion-segmentation/checkpoints/EXP-ATTUNET-001_best.pth",
+  "parameters": 31388013,
+  "checkpoint_size_mb": 359.42,
+  "total_samples": 265,
+  "latency_mean_ms": 17.64,
+  "latency_std_ms": 0.63,
+  "latency_min_ms": 17.1,
+  "latency_max_ms": 21.08,
   "threshold": 0.5,
-  "binary": false,
-  "exported_slices": 265,
-  "created_at_utc": "2026-11-01T05:14:07.221144+00:00",
-  "device": "cpu"
+  "timestamp_utc": "2026-11-03T11:02:30.411513+00:00",
+  "device": "cuda"
 }
