@@ -49,7 +49,7 @@ def main() -> int:
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--manifest", default="data/processed/test_manifest.json")
     parser.add_argument("--raw_data_dir", default=None)
-    parser.add_argument("--lesion_label", type=int, default=1)
+    parser.add_argument("--lesion_label", type=int, default=3)
     parser.add_argument("--device", default=None)
     parser.add_argument("--limit", type=int, default=None, help="Debug: only export the first N slices")
     parser.add_argument(

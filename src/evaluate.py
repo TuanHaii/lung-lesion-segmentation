@@ -234,6 +234,7 @@ def main():
     parser.add_argument("--data_dir", type=str, default=None, help="Path to raw data directory")
     parser.add_argument("--output_dir", type=str, default="reports", help="Directory to save evaluation reports")
     parser.add_argument("--threshold", type=float, default=0.5, help="Probability threshold for binarization")
+    parser.add_argument("--lesion_label", type=int, default=3, help="Ground-truth mask lesion label (default 3)")
     args = parser.parse_args()
 
 
@@ -242,7 +243,7 @@ def main():
 
     model = load_model_from_checkpoint(args.checkpoint, args.model, device)
     raw_data_dir = args.data_dir or os.environ.get("RAW_DATA_DIR")
-    test_loader = get_dataloader(split="test", batch_size=1, shuffle=False, raw_data_dir=raw_data_dir)
+    test_loader = get_dataloader(split="test", batch_size=1, shuffle=False, raw_data_dir=raw_data_dir, lesion_label=args.lesion_label)
 
     evaluate(model, test_loader, device, output_dir=args.output_dir, threshold=args.threshold)
 

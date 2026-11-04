@@ -279,7 +279,9 @@ def main():
 
             # Khởi tạo mô hình
             with st.spinner(f"Đang nạp mô hình {selected_model_name}..."):
-                model, _ = load_model(selected_model_name, checkpoint_path=ckpt_path, device=device)
+                model, has_ckpt = load_model(selected_model_name, checkpoint_path=ckpt_path, device=device)
+                if not has_ckpt:
+                    st.warning(f"⚠️ Cảnh báo: Không tìm thấy checkpoint hợp lệ cho '{selected_model_name}'. Mô hình đang chạy bằng trọng số ngẫu nhiên chỉ để minh họa giao diện!")
 
             # Suy luận
             with st.spinner("Đang thực hiện phân đoạn tổn thương (Inference)..."):
@@ -361,8 +363,10 @@ def main():
             ckpt_b = get_default_checkpoint(m_b)
 
             with st.spinner("Đang chạy dự đoán song song cả 2 mô hình..."):
-                model_a, _ = load_model(m_a, checkpoint_path=ckpt_a, device=device)
-                model_b, _ = load_model(m_b, checkpoint_path=ckpt_b, device=device)
+                model_a, has_ckpt_a = load_model(m_a, checkpoint_path=ckpt_a, device=device)
+                model_b, has_ckpt_b = load_model(m_b, checkpoint_path=ckpt_b, device=device)
+                if not has_ckpt_a or not has_ckpt_b:
+                    st.warning("⚠️ Cảnh báo: Ít nhất một mô hình đang thiếu checkpoint trọng số và đang chạy bằng trọng số ngẫu nhiên!")
 
                 res_a = run_inference(model_a, input_tensor, threshold=threshold, device=device)
                 res_b = run_inference(model_b, input_tensor, threshold=threshold, device=device)

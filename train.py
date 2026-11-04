@@ -1,5 +1,23 @@
 import os
 import sys
+import hashlib
+import subprocess
+
+def get_git_commit() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return "unknown"
+
+def get_manifest_sha(manifest_path="data/processed/clean_slices_manifest.csv") -> str:
+    try:
+        p = Path(manifest_path)
+        if p.exists():
+            return hashlib.sha256(p.read_bytes()).hexdigest()
+    except Exception:
+        pass
+    return "unknown"
+
 import yaml
 import time
 import argparse
@@ -123,6 +141,12 @@ def main():
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility (default: 2026)")
     parser.add_argument("--amp", action="store_true", help="Enable mixed precision on CUDA (lower VRAM, faster)")
     parser.add_argument(
+        "--lesion_label",
+        type=int,
+        default=None,
+        help="Ground-truth mask lesion label (default 3)",
+    )
+    parser.add_argument(
         "--cache_dir",
         type=str,
         default=None,
@@ -159,7 +183,13 @@ def main():
     print(f">> Starting Experiment: {exp_id}")
     print(f">> Device              : {device}")
     print(f">> Random Seed        : {seed}")
+    git_commit = get_git_commit()
+    data_manifest_sha = get_manifest_sha()
+    print(f">> Git Commit          : {git_commit}")
+    print(f">> Manifest SHA-256    : {data_manifest_sha[:16]}...")
+
     print(f">> Epochs              : {epochs} | Batch Size: {batch_size} | LR: {lr}")
+    print(f">> Lesion Label (GT)   : {lesion_label} (Zenodo Multiclass standard)")
     if raw_data_dir:
         print(f">> Raw Data Dir        : {raw_data_dir}")
     print("=" * 70)
@@ -172,7 +202,7 @@ def main():
     # 3. Khởi tạo DataLoaders
     num_workers = config.get("data", {}).get("num_workers", 2)
     pin_memory = config.get("data", {}).get("pin_memory", True)
-    lesion_label = config.get("data", {}).get("lesion_label", 1)
+    lesion_label = args.lesion_label or config.get("data", {}).get("lesion_label", 3)
 
     print(">> Initializing Train and Validation DataLoaders...")
     if args.cache_dir:
@@ -286,6 +316,10 @@ def main():
                     "best_val_dice": best_val_dice,
                     "val_metrics": val_metrics,
                     "config": config,
+                    "lesion_label": lesion_label,
+                    "seed": seed,
+                    "git_commit": git_commit,
+                    "data_manifest_sha": data_manifest_sha,
                 },
                 best_save_path,
             )
@@ -302,6 +336,10 @@ def main():
                 "optimizer_state_dict": optimizer.state_dict(),
                 "last_val_dice": val_metrics["dice"],
                 "config": config,
+                "lesion_label": lesion_label,
+                "seed": seed,
+                "git_commit": git_commit,
+                "data_manifest_sha": data_manifest_sha,
             },
             last_save_path,
         )

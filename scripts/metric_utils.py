@@ -150,7 +150,7 @@ class GroundTruthLoader:
     def __init__(
         self,
         target_size: Tuple[int, int] = (256, 256),
-        lesion_label: int = 1,
+        lesion_label: int = 3,
         raw_data_dir: Optional[str] = None,
     ) -> None:
         if nib is None:
@@ -604,7 +604,7 @@ def run_metric_cli(
     parser.add_argument("--models", nargs="+", default=list(DEFAULT_MODELS))
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--raw_data_dir", default=None)
-    parser.add_argument("--lesion_label", type=int, default=1)
+    parser.add_argument("--lesion_label", type=int, default=3)
     parser.add_argument("--output", default=default_output)
     parser.add_argument("--patient_output", default=None)
     parser.add_argument("--summary_output", default=None)
