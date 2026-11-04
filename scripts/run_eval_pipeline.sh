@@ -109,3 +109,4 @@ echo " 6. [EVAL-06] results/metrics_recall_detail.csv"
 echo " 7. [RES-04]  results/test_metrics_slice_level.csv & results/test_metrics_patient_level.csv"
 echo " 8. [EVAL-07] results/quantitative_comparison_table.csv"
 echo "=============================================================================="
+
