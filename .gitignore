@@ -12,3 +12,4 @@ env/
 *.nii.gz
 *.npy
 *.zip
+raw_predictions_tensors_eval02/
