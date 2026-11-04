@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
 import numpy as np
+from PIL import Image
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -158,9 +159,11 @@ def evaluate_single_model(
             pred_bin = (probs >= threshold).astype(np.uint8)
             gt_bin = (masks.squeeze() >= 0.5).astype(np.uint8)
 
-            # Lưu prediction npy
+            # Lưu prediction cả .npy (tensor xác suất) và .png (binary mask 0/255)
             if export_predictions:
                 np.save(predictions_dir / f"{sample_id}.npy", probs)
+                mask_uint8 = (pred_bin * 255).astype(np.uint8)
+                Image.fromarray(mask_uint8).save(predictions_dir / f"{sample_id}.png")
 
             # Tính toán confusion
             p_flat = pred_bin.flatten().astype(bool)
