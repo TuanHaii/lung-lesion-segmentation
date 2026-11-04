@@ -4,11 +4,11 @@
   "parameters": 31036481,
   "checkpoint_size_mb": 355.32,
   "total_samples": 265,
-  "latency_mean_ms": 16.0,
-  "latency_std_ms": 0.28,
-  "latency_min_ms": 15.5,
-  "latency_max_ms": 17.39,
+  "latency_mean_ms": 16.29,
+  "latency_std_ms": 0.27,
+  "latency_min_ms": 15.48,
+  "latency_max_ms": 17.22,
   "threshold": 0.5,
-  "timestamp_utc": "2026-11-03T11:02:41.899976+00:00",
+  "timestamp_utc": "2026-11-04T06:34:06.980518+00:00",
   "device": "cuda"
 }
