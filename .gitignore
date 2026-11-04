@@ -10,3 +10,5 @@ env/
 *.pt
 *.nii
 *.nii.gz
+*.npy
+*.zip
