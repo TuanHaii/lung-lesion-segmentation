@@ -5,20 +5,21 @@ import torch
 
 def binarize_mask(
     mask: Union[np.ndarray, torch.Tensor],
-    lesion_label: int = 3,
+    lesion_label: int = 1,
     dtype: str = "uint8",
 ) -> Union[np.ndarray, torch.Tensor]:
     """Chuyển đổi nhãn phân đoạn về dạng nhị phân nghiêm ngặt {0, 1}.
 
-    Trích xuất vùng tổn thương tương ứng với `lesion_label` (mặc định 3 theo chuẩn Zenodo multiclass).
-    Không tự động tráo đổi nhãn ngầm để bảo đảm tính toàn vẹn và dễ kiểm chứng dữ liệu.
+    Trích xuất vùng tổn thương nghiêm ngặt theo `lesion_label`.
+    - Chuẩn Infection_Mask nhị phân {0, 1}: lesion_label = 1 (Tổn thương nhiễm trùng).
+    - Chuẩn Lung_and_Infection_Mask đa lớp {0, 1, 2, 3}: lesion_label = 3.
 
     Parameters
     ----------
     mask : np.ndarray hoặc torch.Tensor
-        Mask phân đoạn gốc chứa nhãn {0, 1, 2, 3}.
-    lesion_label : int, mặc định 3
-        Mã nhãn đại diện cho vùng tổn thương nhiễm trùng (Zenodo multiclass: 3).
+        Mask phân đoạn gốc chứa nhãn {0, 1} hoặc {0, 1, 2, 3}.
+    lesion_label : int, mặc định 1
+        Mã nhãn đại diện cho vùng tổn thương nhiễm trùng (1 cho Infection_Mask, 3 cho Lung_and_Infection_Mask).
     dtype : str, mặc định 'uint8'
         Kiểu dữ liệu đầu ra mong muốn ('uint8' hoặc 'float32').
 
@@ -64,7 +65,11 @@ if __name__ == "__main__":
     # Khi yêu cầu nhãn 3 nhưng mảng chỉ có {0, 1}: kết quả trả về đúng toàn 0, không tự ý chuyển sang 1
     raw_bin = np.array([[0, 1], [1, 0]], dtype=np.int32)
     bin_strict = binarize_mask(raw_bin, lesion_label=3, dtype="uint8")
-    assert np.all(bin_strict == 0), "Lỗi: Không được tự ý đổi nhãn ngầm!"
+    assert np.all(bin_strict == 0), "Lỗi: Không được tự ý đổi nhãn ngầm khi yêu cầu nhãn 3!"
+
+    # 2.1. Kiểm thử trích xuất đúng nhãn 1 cho bộ mask nhị phân Infection_Mask
+    bin_lesion1 = binarize_mask(raw_bin, lesion_label=1, dtype="uint8")
+    assert np.array_equal(bin_lesion1, raw_bin), "Lỗi: Trích xuất sai cho Infection_Mask nhãn 1!"
 
     # 3. Kiểm thử trên PyTorch Tensor với float32 (cho hàm loss)
     raw_ts = torch.tensor([[0, 2], [3, 1]], dtype=torch.long)

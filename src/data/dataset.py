@@ -35,7 +35,7 @@ class LungCTDataset(Dataset):
         split_json_path: str = "data/processed/splits_patient_level.json",
         split: str = "train",
         target_size: Tuple[int, int] = (256, 256),
-        lesion_label: int = 3,
+        lesion_label: int = 1,
         cache_volumes: bool = True,
         raw_data_dir: Optional[str] = None,
     ):
@@ -103,53 +103,80 @@ class LungCTDataset(Dataset):
             return self._path_cache[path]
 
         p = Path(path)
-        if p.exists():
+        if p.exists() and p.stat().st_size > 0:
             self._path_cache[path] = str(p)
             return str(p)
 
-        # 1. Kiểm tra raw_data_dir chỉ định hoặc biến môi trường
+        clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
+        is_mask = any(k in path.lower() for k in ["mask", "infection", "ground_truth", "label"])
+
+        search_roots = []
         if self.raw_data_dir:
-            base_dir = Path(self.raw_data_dir)
-            if base_dir.exists():
-                candidates = [
-                    base_dir / p,
-                    base_dir / p.name,
-                    base_dir / p.parent.name / p.name,
-                    base_dir / "data" / "raw" / p.parent.name / p.name,
-                    base_dir / str(p).replace("data/raw/", "").replace("data\\raw\\", ""),
-                ]
-                for c in candidates:
-                    if c.exists():
-                        self._path_cache[path] = str(c)
-                        return str(c)
+            search_roots.append(Path(self.raw_data_dir))
+        for env_var in ["RAW_DATA_DIR", "KAGGLE_DATA_DIR"]:
+            val = os.environ.get(env_var)
+            if val and Path(val).exists():
+                search_roots.append(Path(val))
 
-                # Tìm kiếm đệ quy trong base_dir nếu thư mục con bị lồng nhiều cấp
-                matches = list(base_dir.rglob(p.name))
-                if not matches:
-                    clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
-                    matches = list(base_dir.rglob(f"{clean_stem}.nii*"))
-                valid_matches = [m for m in matches if m.stat().st_size > 0]
-                if valid_matches:
-                    self._path_cache[path] = str(valid_matches[0])
-                    return str(valid_matches[0])
-                elif matches:
-                    self._path_cache[path] = str(matches[0])
-                    return str(matches[0])
-
-        # 2. Tìm tự động trong thư mục Kaggle (/kaggle/input)
         kaggle_root = Path("/kaggle/input")
         if kaggle_root.exists():
-            matches = list(kaggle_root.rglob(p.name))
-            if not matches:
-                clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
-                matches = list(kaggle_root.rglob(f"{clean_stem}.nii*"))
-            valid_matches = [m for m in matches if m.stat().st_size > 0]
-            if valid_matches:
+            search_roots.append(kaggle_root)
+            for child in kaggle_root.iterdir():
+                if child.is_dir():
+                    search_roots.append(child)
+
+        search_roots.extend([Path("data/raw"), Path(".")])
+
+        exts = [".nii.gz", ".nii"]
+        candidate_subdirs = [
+            "Infection_Mask", "infection_mask", "ground_truth_masks",
+            "Lung_and_Infection_Mask", "lung_and_infection_mask", "masks", "mask"
+        ] if is_mask else ["ct_volumes", "CT_Volumes", "images", "ct"]
+
+        for root in search_roots:
+            if not root.exists():
+                continue
+            for sdir in candidate_subdirs:
+                for ext in exts:
+                    cand = root / sdir / f"{clean_stem}{ext}"
+                    if cand.exists() and cand.stat().st_size > 0:
+                        self._path_cache[path] = str(cand)
+                        return str(cand)
+                    cand_nested = root / p.parent.name / f"{clean_stem}{ext}"
+                    if cand_nested.exists() and cand_nested.stat().st_size > 0:
+                        self._path_cache[path] = str(cand_nested)
+                        return str(cand_nested)
+
+        for root in search_roots:
+            if not root.exists():
+                continue
+            matches = list(root.rglob(f"{clean_stem}.nii*"))
+            valid_matches = [m for m in matches if m.is_file() and m.stat().st_size > 0]
+            if not valid_matches:
+                continue
+
+            filtered = []
+            for m in valid_matches:
+                m_str = str(m).lower()
+                has_mask_kw = any(k in m_str for k in ["mask", "infection"])
+                has_ct_kw = any(k in m_str for k in ["ct_volume", "ct_vol", "images"])
+                if is_mask:
+                    if has_mask_kw and not has_ct_kw:
+                        filtered.append(m)
+                    elif has_mask_kw:
+                        filtered.append(m)
+                else:
+                    if has_ct_kw and not has_mask_kw:
+                        filtered.append(m)
+                    elif not has_mask_kw:
+                        filtered.append(m)
+
+            if filtered:
+                self._path_cache[path] = str(filtered[0])
+                return str(filtered[0])
+            elif valid_matches:
                 self._path_cache[path] = str(valid_matches[0])
                 return str(valid_matches[0])
-            elif matches:
-                self._path_cache[path] = str(matches[0])
-                return str(matches[0])
 
         return str(p)
 
@@ -231,7 +258,7 @@ def get_dataloader(
     split_json_path: str = "data/processed/splits_patient_level.json",
     cache_volumes: bool = True,
     raw_data_dir: Optional[str] = None,
-    lesion_label: int = 3,
+    lesion_label: int = 1,
 ) -> DataLoader:
     """Khởi tạo PyTorch DataLoader tiêu chuẩn hóa cho huấn luyện và đánh giá."""
     is_train = split == "train"

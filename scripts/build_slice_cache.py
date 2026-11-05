@@ -50,7 +50,7 @@ def main() -> int:
     parser.add_argument("--splits", default="data/processed/splits_patient_level.json")
     parser.add_argument("--output_dir", default="data/processed/slice_cache")
     parser.add_argument("--image_size", type=int, default=256)
-    parser.add_argument("--lesion_label", type=int, default=3)
+    parser.add_argument("--lesion_label", type=int, default=1)
     parser.add_argument("--splits_to_build", nargs="+", default=["train", "val", "test"])
     args = parser.parse_args()
 

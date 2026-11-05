@@ -144,7 +144,7 @@ def main():
         "--lesion_label",
         type=int,
         default=None,
-        help="Ground-truth mask lesion label (default 3)",
+        help="Ground-truth mask lesion label (default 1)",
     )
     parser.add_argument(
         "--cache_dir",
@@ -173,6 +173,7 @@ def main():
     batch_size = args.batch_size or config.get("data", {}).get("batch_size") or config.get("train", {}).get("batch_size", 16)
     lr = args.lr or config.get("training", {}).get("optimizer", {}).get("lr") or config.get("train", {}).get("lr", 1e-4)
     raw_data_dir = args.data_dir or os.environ.get("RAW_DATA_DIR") or os.environ.get("KAGGLE_DATA_DIR")
+    lesion_label = args.lesion_label or config.get("data", {}).get("lesion_label", 1)
 
     if args.device:
         device = torch.device(args.device)
@@ -189,7 +190,7 @@ def main():
     print(f">> Manifest SHA-256    : {data_manifest_sha[:16]}...")
 
     print(f">> Epochs              : {epochs} | Batch Size: {batch_size} | LR: {lr}")
-    print(f">> Lesion Label (GT)   : {lesion_label} (Zenodo Multiclass standard)")
+    print(f">> Lesion Label (GT)   : {lesion_label} (Infection_Mask standard)")
     if raw_data_dir:
         print(f">> Raw Data Dir        : {raw_data_dir}")
     print("=" * 70)
@@ -202,7 +203,6 @@ def main():
     # 3. Khởi tạo DataLoaders
     num_workers = config.get("data", {}).get("num_workers", 2)
     pin_memory = config.get("data", {}).get("pin_memory", True)
-    lesion_label = args.lesion_label or config.get("data", {}).get("lesion_label", 3)
 
     print(">> Initializing Train and Validation DataLoaders...")
     if args.cache_dir:

@@ -234,7 +234,7 @@ def main():
     parser.add_argument("--data_dir", type=str, default=None, help="Path to raw data directory")
     parser.add_argument("--output_dir", type=str, default="reports", help="Directory to save evaluation reports")
     parser.add_argument("--threshold", type=float, default=0.5, help="Probability threshold for binarization")
-    parser.add_argument("--lesion_label", type=int, default=3, help="Ground-truth mask lesion label (default 3)")
+    parser.add_argument("--lesion_label", type=int, default=1, help="Ground-truth mask lesion label (default 1)")
     args = parser.parse_args()
 
 

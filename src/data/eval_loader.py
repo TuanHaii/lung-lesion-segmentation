@@ -144,7 +144,7 @@ class IndependentTestDataset(Dataset):
         manifest_path: str = "data/processed/test_manifest.json",
         target_size: Tuple[int, int] = (256, 256),
         hu_range: Tuple[float, float] = (-1000.0, 400.0),
-        lesion_label: int = 3,
+        lesion_label: int = 1,
         cache_volumes: bool = True,
         raw_data_dir: Optional[str] = None,
         mock: bool = False,
@@ -217,67 +217,96 @@ class IndependentTestDataset(Dataset):
             return self._path_cache[path]
 
         p = Path(path)
-        if p.exists():
+        if p.exists() and p.stat().st_size > 0:
             self._path_cache[path] = str(p)
             return str(p)
 
-        # Tìm kiếm qua raw_data_dir
+        clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
+        is_mask = any(k in path.lower() for k in ["mask", "infection", "ground_truth", "label"])
+
+        search_roots = []
         if self.raw_data_dir:
-            base_dir = Path(self.raw_data_dir)
-            candidates = [
-                base_dir / p,
-                base_dir / p.name,
-                base_dir / p.parent.name / p.name,
-                base_dir / "data" / "raw" / p.parent.name / p.name,
-                base_dir / str(p).replace("data/raw/", "").replace("data\\raw\\", ""),
-            ]
-            for c in candidates:
-                if c.exists() and c.stat().st_size > 0:
-                    self._path_cache[path] = str(c)
-                    return str(c)
+            search_roots.append(Path(self.raw_data_dir))
+        for env_var in ["RAW_DATA_DIR", "KAGGLE_DATA_DIR"]:
+            val = os.environ.get(env_var)
+            if val and Path(val).exists():
+                search_roots.append(Path(val))
 
-            matches = list(base_dir.rglob(p.name))
-            if matches:
-                self._path_cache[path] = str(matches[0])
-                return str(matches[0])
-
-        # Tìm kiếm qua /kaggle/input
         kaggle_root = Path("/kaggle/input")
         if kaggle_root.exists():
-            matches = list(kaggle_root.rglob(p.name))
-            if matches:
-                self._path_cache[path] = str(matches[0])
-                return str(matches[0])
+            search_roots.append(kaggle_root)
+            for child in kaggle_root.iterdir():
+                if child.is_dir():
+                    search_roots.append(child)
+
+        search_roots.extend([Path("data/raw"), Path(".")])
+
+        exts = [".nii.gz", ".nii"]
+        candidate_subdirs = [
+            "Infection_Mask", "infection_mask", "ground_truth_masks",
+            "Lung_and_Infection_Mask", "lung_and_infection_mask", "masks", "mask"
+        ] if is_mask else ["ct_volumes", "CT_Volumes", "images", "ct"]
+
+        for root in search_roots:
+            if not root.exists():
+                continue
+            for sdir in candidate_subdirs:
+                for ext in exts:
+                    cand = root / sdir / f"{clean_stem}{ext}"
+                    if cand.exists() and cand.stat().st_size > 0:
+                        self._path_cache[path] = str(cand)
+                        return str(cand)
+                    cand_nested = root / p.parent.name / f"{clean_stem}{ext}"
+                    if cand_nested.exists() and cand_nested.stat().st_size > 0:
+                        self._path_cache[path] = str(cand_nested)
+                        return str(cand_nested)
+
+        for root in search_roots:
+            if not root.exists():
+                continue
+            matches = list(root.rglob(f"{clean_stem}.nii*"))
+            valid_matches = [m for m in matches if m.is_file() and m.stat().st_size > 0]
+            if not valid_matches:
+                continue
+
+            filtered = []
+            for m in valid_matches:
+                m_str = str(m).lower()
+                has_mask_kw = any(k in m_str for k in ["mask", "infection"])
+                has_ct_kw = any(k in m_str for k in ["ct_volume", "ct_vol", "images"])
+                if is_mask:
+                    if has_mask_kw and not has_ct_kw:
+                        filtered.append(m)
+                    elif has_mask_kw:
+                        filtered.append(m)
+                else:
+                    if has_ct_kw and not has_mask_kw:
+                        filtered.append(m)
+                    elif not has_mask_kw:
+                        filtered.append(m)
+
+            if filtered:
+                self._path_cache[path] = str(filtered[0])
+                return str(filtered[0])
+            elif valid_matches:
+                self._path_cache[path] = str(valid_matches[0])
+                return str(valid_matches[0])
 
         return str(p)
 
     def _generate_mock_slice(self, record: Dict[str, Any], idx: int) -> Tuple[np.ndarray, np.ndarray]:
-        """Tạo cặp lát cắt giả lập chuẩn y khoa (độ phân giải 512x512) phục vụ kiểm thử.
-
-        - CT: Dải HU [-1024, 1000] mô phỏng không khí, phổi, mô mềm và xương.
-        - Mask: Nhãn đa lớp {0, 1, 2, 3} trong đó 3 là vùng tổn thương nếu lesion_present == 1.
-        """
-        # Sử dụng seed cố định theo sample_id hoặc idx để đảm bảo tái lập
+        """Tạo cặp lát cắt giả lập chuẩn y khoa (độ phân giải 512x512) phục vụ kiểm thử."""
         rng = np.random.RandomState(idx + 2026)
-
-        # Lát cắt CT thô 512x512: Nền không khí (-1000 HU)
         ct_raw = np.full((512, 512), fill_value=-1000.0, dtype=np.float32)
-        # Nhu mô phổi (-700 đến -500 HU)
         ct_raw[100:412, 100:412] = rng.uniform(-700.0, -500.0, size=(312, 312))
-        # Thành ngực / mô đặc (+40 HU)
         ct_raw[80:100, 80:432] = 40.0
-        # Xương sườn (+700 HU)
         ct_raw[85:95, 120:140] = 700.0
 
-        # Mask thô 512x512
         mask_raw = np.zeros((512, 512), dtype=np.uint8)
-        # Vùng phổi trái (1), phổi phải (2)
         mask_raw[120:380, 120:230] = 1
         mask_raw[120:380, 280:390] = 2
 
-        # Nếu lát cắt có tổn thương (lesion_present == 1)
         if int(record.get("lesion_present", 0)) == 1:
-            # Tổn thương đông đặc / kính mờ (-200 đến +50 HU, nhãn 3)
             ct_raw[200:260, 140:200] = rng.uniform(-200.0, 50.0, size=(60, 60))
             mask_raw[200:260, 140:200] = self.lesion_label
 
@@ -295,15 +324,19 @@ class IndependentTestDataset(Dataset):
         resolved_ct = self._resolve_path(ct_path)
         resolved_mask = self._resolve_path(mask_path)
 
-        # Nếu file không tồn tại trên đĩa và chưa có dữ liệu thực tế
         if not os.path.exists(resolved_ct) or not os.path.exists(resolved_mask):
-            # Tự động chuyển sang mock slice nếu không tìm thấy file NIfTI
-            return self._generate_mock_slice(record, idx)
+            if not Path("/kaggle").exists() and not self.raw_data_dir:
+                return self._generate_mock_slice(record, idx)
+            raise FileNotFoundError(
+                f"[ERROR] Không tìm thấy file dữ liệu thực tế trên đĩa!\n"
+                f" - CT path: {ct_path} -> Resolved: {resolved_ct} (exists: {os.path.exists(resolved_ct)})\n"
+                f" - Mask path: {mask_path} -> Resolved: {resolved_mask} (exists: {os.path.exists(resolved_mask)})\n"
+                f" Vui lòng kiểm tra lại RAW_DATA_DIR hoặc đường dẫn Kaggle Dataset."
+            )
 
         if nib is None:
             raise ImportError("Cần cài đặt 'nibabel' để đọc file .nii/.nii.gz: pip install nibabel")
 
-        # Đọc dữ liệu với cache
         if self.cache_volumes:
             if resolved_ct not in self._ct_cache:
                 self._ct_cache[resolved_ct] = nib.load(resolved_ct).get_fdata(dtype=np.float32)
@@ -382,7 +415,7 @@ def get_eval_dataloader(
     manifest_path: str = "data/processed/test_manifest.json",
     target_size: Tuple[int, int] = (256, 256),
     hu_range: Tuple[float, float] = (-1000.0, 400.0),
-    lesion_label: int = 3,
+    lesion_label: int = 1,
     batch_size: int = 1,
     shuffle: bool = False,
     num_workers: int = 0,
@@ -408,7 +441,7 @@ def get_eval_dataloader(
     hu_range : Tuple[float, float]
         Cửa sổ HU [-1000, 400].
     lesion_label : int
-        Nhãn tổn thương trên mask thô (mặc định 3).
+        Nhãn tổn thương trên mask thô (mặc định 1 cho Infection_Mask).
     batch_size : int
         Kích thước batch (mặc định 1, luôn được cưỡng chế về 1 nếu khác).
     shuffle : bool

@@ -324,11 +324,12 @@ def main():
             "name": "SegNet",
             "display": "SegNet (Baseline)",
             "checkpoints": [
+                "checkpoints/EXP-SEGNET-001_best.pth",
+                "/kaggle/working/lung-lesion-segmentation/checkpoints/EXP-SEGNET-001_best.pth",
+                "/kaggle/working/EXP-SEGNET-001_best.pth",
                 "checkpoints/EXP-SEGNET-002_best.pth",
                 "/kaggle/working/lung-lesion-segmentation/checkpoints/EXP-SEGNET-002_best.pth",
                 "/kaggle/working/EXP-SEGNET-002_best.pth",
-                "checkpoints/EXP-SEGNET-001_best.pth",
-                "/kaggle/working/lung-lesion-segmentation/checkpoints/EXP-SEGNET-001_best.pth",
             ],
             "report_dir": Path("reports/segnet"),
             "pred_dir": Path("predictions/segnet"),
@@ -336,12 +337,13 @@ def main():
     ]
 
     # Kiểm tra sự tồn tại của DataLoader
+    raw_data_dir = args.raw_data_dir or os.environ.get("RAW_DATA_DIR") or os.environ.get("KAGGLE_DATA_DIR")
     test_loader = get_eval_dataloader(
         manifest_path=args.manifest,
         batch_size=1,
         shuffle=False,
         num_workers=0,
-        raw_data_dir=args.raw_data_dir,
+        raw_data_dir=raw_data_dir,
         enforce_readonly=False,
     )
     print(f">> Khởi tạo Test DataLoader thành công: {len(test_loader)} lát cắt.")
