@@ -133,3 +133,4 @@ Standard U-Net (Baseline) & 0.9740 ± 0.0190 & 0.9500 ± 0.0341 & 0.9618 ± 0.02
 1. **Phần Materials and Methods**: Trích dẫn Mục 2.1 (Tập dữ liệu `Infection_Mask`, nhãn 1 là tổn thương), Mục 2.2 (Cửa sổ HU $[-1000, 400]$, Min-Max Scaling, Resize 256) và Mục 2.3 (Hybrid Loss, AdamW, Cosine Annealing, Seed 2026).
 2. **Phần Results**: Chèn trực tiếp mã LaTeX ở Mục 3 (`tab:model_comparison`) và trích dẫn số liệu kiểm định Wilcoxon ở Mục 5.
 3. **Phần Discussion**: Khai thác chỉ số Recall vượt trội ($99.41\%$) của Attention U-Net để chứng minh giá trị lâm sàng trong việc ngăn ngừa bỏ sót các vùng đông đặc phổi nhỏ.
+
