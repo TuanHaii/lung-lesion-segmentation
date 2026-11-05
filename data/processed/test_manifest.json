@@ -1,12 +1,7 @@
 {
   "metadata": {
-    "task_id": "EVAL-01",
-    "task_name": "Independent Test Set Isolation & Cataloging",
-    "project": "CT Lung Lesion Segmentation via Attention U-Net",
-    "dataset_version": "v1.0-frozen",
-    "created_at_utc": "2026-11-01T06:28:44.953559+00:00",
-    "split_ratio": "70/15/15",
-    "random_seed": 2026,
+    "dataset_version": "v1.0",
+    "created_at": "2026-11-04T08:46:28.859852+00:00",
     "test_patients": [
       "P_coronacases_002",
       "P_coronacases_007",
@@ -14,61 +9,11 @@
     ],
     "total_test_patients": 3,
     "total_test_slices": 265,
-    "lesion_slices": 221,
-    "normal_slices": 44,
-    "patient_slice_counts": {
-      "P_coronacases_002": 124,
-      "P_coronacases_007": 104,
-      "P_radiopaedia_27_86410_0": 37
-    },
-    "patient_lesion_counts": {
-      "P_coronacases_002": {
-        "lesion_slices": 113,
-        "normal_slices": 11,
-        "total": 124
-      },
-      "P_coronacases_007": {
-        "lesion_slices": 73,
-        "normal_slices": 31,
-        "total": 104
-      },
-      "P_radiopaedia_27_86410_0": {
-        "lesion_slices": 35,
-        "normal_slices": 2,
-        "total": 37
-      }
-    },
-    "specifications": {
-      "target_resolution": [
-        256,
-        256
-      ],
-      "hu_window_range": [
-        -1000.0,
-        400.0
-      ],
-      "normalization": "Min-Max [0.0, 1.0]",
-      "mask_type": "Binary {0, 1} (1: Lesion/Infection, lesion_label=1)",
-      "interpolation_image": "Bilinear (cv2.INTER_LINEAR)",
-      "interpolation_mask": "Nearest Neighbor (cv2.INTER_NEAREST)",
-      "batch_size": 1,
-      "shuffle": false,
-      "augmentation": false
-    },
-    "source_files": {
-      "splits_json": "data/processed/splits_patient_level.json",
-      "clean_slices_csv": "data/processed/clean_slices_manifest.csv",
-      "freeze_manifest": "data/processed/dataset_v1.0_freeze_manifest.json"
-    },
-    "source_checksums": {
-      "clean_slices_manifest_csv_sha256": "7e3f6dadfef2862f5d0306fc66aef686c1eb24d37e1bf62e9fbb1e11b0cc14d6",
-      "splits_patient_level_json_sha256": "bd1afe5325603baaa7ae4d5ee662f9d6719403b35e585b99087c3c470c7f6f07"
-    },
-    "qa_status": {
-      "zero_leakage_verified": true,
-      "patient_level_isolation_verified": true,
-      "read_only_enforced": true
-    }
+    "total_lesion_slices": 221,
+    "total_normal_slices": 44,
+    "split_ratio": "70/15/15",
+    "zero_leakage_verified": true,
+    "qa_status": "PASSED"
   },
   "slices": [
     {
