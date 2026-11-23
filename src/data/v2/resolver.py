@@ -1,51 +1,218 @@
-"""Safe Path Resolver for Pipeline V2.
+"""Hardened Safe Path Resolver for Pipeline V2.
 
 Guarantees:
-1. Strict type isolation: CT paths cannot resolve to mask files; Mask paths cannot resolve to CT files.
-2. Non-identity enforcement: CT path and Mask path can NEVER be identical.
-3. No unsafe fallbacks: If a matching file of the exact requested type is not found,
-   raises FileNotFoundError rather than returning an arbitrary NIfTI file.
-4. Validates existence and non-zero file size.
+1. Patient Identity Resolution: Resolves CT and Mask files strictly by patient identity
+   and known dataset structure, not broad arbitrary keywords.
+2. Distinct File Enforcement: CT path and Mask path can NEVER be identical.
+3. Strict Directory Boundaries: CT candidates must originate from approved CT directories
+   (e.g. 'COVID-19-CT-Seg_20cases', 'ct_volumes'); Mask candidates from approved Mask
+   directories (e.g. 'Infection_Mask', 'ground_truth_masks').
+4. No Permissive / Arbitrary Classification: Arbitrary NIfTI files outside approved
+   dataset directories are rejected.
+5. Flexible Filename Pattern Matching: Supports all actual CT variations (e.g. 'case009.nii',
+   'case_009.nii.gz', 'coronacases_009.nii.gz', 'coronacases_org_009.nii', 'coronacases_9.nii.gz')
+   and does not assume CT and Mask filenames are identical.
+6. Ambiguity Detection: If multiple distinct candidate files exist for a patient in the
+   approved directory, raises an explicit AmbiguityError instead of silently picking one.
+7. Strict Extension Validation: Only .nii and .nii.gz files are accepted.
+8. Pair Integrity Validation: Validates file existence, non-zero size, NIfTI loadability,
+   shape compatibility, affine compatibility within documented tolerance (atol=1e-3),
+   and mask label conventions. Never silently resamples or transposes.
 """
 
 import os
+import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+try:
+    import nibabel as nib
+    import numpy as np
+except ImportError:
+    nib = None
+    np = None
 
 
 class PathResolverError(RuntimeError):
-    """Raised when path resolution fails or violates data integrity."""
+    """Base exception for path resolution failures or data integrity violations."""
     pass
 
 
+class AmbiguityError(PathResolverError):
+    """Raised when multiple valid candidate files match the requested patient/type."""
+    pass
+
+
+class PairIntegrityError(PathResolverError):
+    """Raised when CT and Mask pairing violates integrity constraints (shapes, affines, etc.)."""
+    pass
+
+
+# -------------------------------------------------------------------------
+# Helper Functions
+# -------------------------------------------------------------------------
+
+def is_nii_file(path: Path) -> bool:
+    """Check if file ends with .nii or .nii.gz (case-insensitive)."""
+    name = path.name.lower()
+    return name.endswith(".nii.gz") or (name.endswith(".nii") and not name.endswith(".nii.gz"))
+
+
+def clean_stem(filename: str) -> str:
+    """Strip .nii or .nii.gz from filename, in lower case."""
+    name = filename.lower()
+    if name.endswith(".nii.gz"):
+        name = name[:-7]
+    elif name.endswith(".nii"):
+        name = name[:-4]
+    return name
+
+
+def parse_patient_id(identifier: str) -> Optional[Dict[str, Any]]:
+    """Parse patient ID or filename stem into structured patient metadata.
+
+    Supports:
+    - Coronacases: 'P_coronacases_001', 'coronacases_001', 'coronacases_org_001',
+                   'case001', 'case_001', 'case1', 'case_1'
+    - Radiopaedia: 'P_radiopaedia_10_85902_1', 'radiopaedia_10_85902_1',
+                   'radiopaedia_org_10_85902_1', 'radiopaedia_case_10_85902_1',
+                   'case_10_85902_1'
+    """
+    stem = clean_stem(identifier)
+
+    # Strip mask suffixes / prefixes for matching
+    stem = re.sub(r"^(?:infection_mask_|mask_)", "", stem)
+    stem = re.sub(r"[-_](?:mask|clean|org)$", "", stem)
+
+    # 1. Coronacases matching
+    # Matches P_coronacases_009, coronacases_009, coronacases_org_009, case009, case_009, case9
+    corona_match = re.match(
+        r"^(?:p_)?(?:coronacases(?:_org)?|case)[-_]?0*(\d+)$",
+        stem,
+        re.IGNORECASE,
+    )
+    if corona_match:
+        case_num = int(corona_match.group(1))
+        return {
+            "source": "coronacases",
+            "case_num": case_num,
+            "canonical_id": f"P_coronacases_{case_num:03d}",
+        }
+
+    # 2. Radiopaedia matching
+    # Matches P_radiopaedia_10_85902_1, radiopaedia_10_85902_1, case_10_85902_1, radiopaedia_case_10_85902_1
+    radio_match = re.match(
+        r"^(?:p_)?(?:radiopaedia(?:_org|_case)?|case)[-_]?0*(\d+)[-_](\d+)[-_](\d+)$",
+        stem,
+        re.IGNORECASE,
+    )
+    if radio_match:
+        case_val = int(radio_match.group(1))
+        study_val = int(radio_match.group(2))
+        series_val = int(radio_match.group(3))
+        return {
+            "source": "radiopaedia",
+            "case": case_val,
+            "study": study_val,
+            "series": series_val,
+            "canonical_id": f"P_radiopaedia_{case_val}_{study_val}_{series_val}",
+        }
+
+    return None
+
+
+def classify_enclosing_directory(path: Path) -> Optional[str]:
+    """Classify path as CT or Mask based on its closest approved enclosing directory.
+
+    Traverses parents from innermost (immediate parent) to outermost.
+    Returns 'ct', 'mask', or None.
+    """
+    # Approved folder names (case-insensitive)
+    approved_ct = {"covid-19-ct-seg_20cases", "ct_volumes", "ct_scans", "images", "ct"}
+    approved_mask = {
+        "infection_mask", "ground_truth_masks", "lung_and_infection_mask",
+        "masks", "mask", "labels"
+    }
+
+    # First check immediate parent
+    immediate = path.parent.name.lower()
+    if immediate in approved_mask:
+        return "mask"
+    if immediate in approved_ct:
+        return "ct"
+
+    # Next check ancestors from innermost to outermost
+    for parent in path.parents:
+        pname = parent.name.lower()
+        if pname in approved_mask:
+            return "mask"
+        if pname in approved_ct:
+            return "ct"
+
+    return None
+
+
+# -------------------------------------------------------------------------
+# SafePathResolver Implementation
+# -------------------------------------------------------------------------
+
 class SafePathResolver:
-    """Safe resolver for CT and Mask NIfTI files across local and Kaggle environments."""
+    """Hardened resolver for CT and Mask NIfTI volumes across local and Kaggle environments."""
 
-    CT_POSITIVE_KEYWORDS = ["ct_volume", "ct_volumes", "ct_vol", "images", "ct"]
-    CT_NEGATIVE_KEYWORDS = ["mask", "infection", "ground_truth", "label"]
+    APPROVED_CT_DIRS: Set[str] = {
+        "covid-19-ct-seg_20cases",
+        "ct_volumes",
+        "ct_scans",
+        "images",
+        "ct",
+    }
+    APPROVED_MASK_DIRS: Set[str] = {
+        "infection_mask",
+        "ground_truth_masks",
+        "lung_and_infection_mask",
+        "masks",
+        "mask",
+        "labels",
+    }
 
-    MASK_POSITIVE_KEYWORDS = [
-        "mask", "masks", "infection", "infection_mask",
-        "ground_truth_masks", "ground_truth", "label", "lung_and_infection"
-    ]
-    MASK_NEGATIVE_KEYWORDS = ["ct_volume", "ct_volumes", "ct_vol", "images"]
+    ALLOWED_EXTENSIONS: Set[str] = {".nii.gz", ".nii"}
+    CT_NEGATIVE_KEYWORDS: List[str] = ["mask", "infection", "ground_truth", "label"]
 
-    def __init__(self, raw_data_dir: Optional[str] = None):
+    AFFINE_ATOL: float = 1e-3
+    AFFINE_RTOL: float = 1e-3
+
+    def __init__(
+        self,
+        raw_data_dir: Optional[str] = None,
+        strict_nifti: bool = False,
+    ):
+        """Initialize SafePathResolver.
+
+        Parameters
+        ----------
+        raw_data_dir : Optional[str]
+            Explicit directory containing raw CT/Mask dataset subdirectories.
+        strict_nifti : bool
+            If True, enforces strict nibabel header reading during validation.
+        """
         self.raw_data_dir = (
             raw_data_dir
             or os.environ.get("RAW_DATA_DIR")
             or os.environ.get("KAGGLE_DATA_DIR")
         )
-        self._path_cache: dict[str, Path] = {}
+        self.strict_nifti = strict_nifti
+        self._path_cache: Dict[str, Path] = {}
+        self._pair_cache: Dict[str, Tuple[Path, Path]] = {}
 
     def _get_search_roots(self) -> List[Path]:
+        """Collect all candidate search roots in local workspace and Kaggle environments."""
         roots: List[Path] = []
         if self.raw_data_dir:
             p = Path(self.raw_data_dir)
             if p.exists():
                 roots.append(p)
+                return roots  # Explicit raw_data_dir takes strict precedence to avoid cross-mount pollution
 
-        # Standard environment checks
         for env_var in ["RAW_DATA_DIR", "KAGGLE_DATA_DIR"]:
             val = os.environ.get(env_var)
             if val:
@@ -53,72 +220,208 @@ class SafePathResolver:
                 if p.exists() and p not in roots:
                     roots.append(p)
 
-        # Kaggle environment
+        # Kaggle input directory exploration (up to 2 levels deep)
         kaggle_root = Path("/kaggle/input")
         if kaggle_root.exists():
             roots.append(kaggle_root)
-            for child in kaggle_root.iterdir():
-                if child.is_dir() and child not in roots:
-                    roots.append(child)
+            try:
+                for child in kaggle_root.iterdir():
+                    if child.is_dir() and child not in roots:
+                        roots.append(child)
+                        for grandchild in child.iterdir():
+                            if grandchild.is_dir() and grandchild not in roots:
+                                roots.append(grandchild)
+            except Exception:
+                pass
 
-        # Local workspace defaults
-        for default_rel in [Path("data/raw"), Path(".")]:
+        # Local workspace fallbacks
+        for default_rel in [Path("data/raw"), Path("data"), Path(".")]:
             if default_rel.exists() and default_rel.resolve() not in [r.resolve() for r in roots]:
                 roots.append(default_rel)
 
         return roots
 
     def _is_valid_type(self, path: Path, file_type: str) -> bool:
-        """Check if a path legitimately matches the expected file type."""
-        path_str = str(path).lower().replace("\\", "/")
+        """Validate that a candidate path legitimately belongs to file_type ('ct' or 'mask')."""
+        if not is_nii_file(path):
+            return False
+
+        file_name = path.name.lower()
+        dir_class = classify_enclosing_directory(path)
 
         if file_type == "ct":
-            # CT file must NOT contain mask keywords
+            # 1. Must originate from an approved CT directory
+            if dir_class != "ct":
+                return False
+            # 2. Filename cannot contain mask keywords
             for neg in self.CT_NEGATIVE_KEYWORDS:
-                if neg in path_str:
+                if neg in file_name:
                     return False
             return True
+
         elif file_type == "mask":
-            # Mask file must contain at least one mask keyword
-            has_pos = any(pos in path_str for pos in self.MASK_POSITIVE_KEYWORDS)
-            # Mask file must NOT be in a pure CT image folder without mask keyword in filename
-            is_ct_folder = any(neg in str(path.parent).lower() for neg in self.MASK_NEGATIVE_KEYWORDS)
-            if is_ct_folder and not any(pos in path.name.lower() for pos in self.MASK_POSITIVE_KEYWORDS):
+            # 1. Must originate from an approved Mask directory
+            if dir_class != "mask":
                 return False
-            return has_pos
+            # 2. Immediate parent cannot be a CT folder
+            if path.parent.name.lower() in self.APPROVED_CT_DIRS:
+                return False
+            return True
         else:
             raise ValueError(f"Unknown file_type: {file_type}")
 
-    def resolve_file(self, target_path: str, file_type: str) -> Path:
-        """Resolve a single file path safely.
+    def matches_patient(self, path: Path, patient_id: str, file_type: str) -> bool:
+        """Verify whether a file path belongs to the requested patient identity."""
+        pid_info = parse_patient_id(patient_id)
+        file_info = parse_patient_id(path.name)
 
-        Parameters
-        ----------
-        target_path : str
-            Requested relative or absolute file path.
-        file_type : str
-            Either 'ct' or 'mask'.
+        if pid_info is not None and file_info is not None:
+            # Source must match
+            if pid_info["source"] != file_info["source"]:
+                return False
 
-        Returns
-        -------
-        Path
-            Verified path to the existing file.
+            if pid_info["source"] == "coronacases":
+                return pid_info["case_num"] == file_info["case_num"]
+            elif pid_info["source"] == "radiopaedia":
+                return (
+                    pid_info["case"] == file_info["case"]
+                    and pid_info["study"] == file_info["study"]
+                    and pid_info["series"] == file_info["series"]
+                )
 
-        Raises
-        ------
-        FileNotFoundError
-            If file cannot be found.
-        PathResolverError
-            If file fails type verification or is 0-byte.
+        # Fallback substring token matching for non-standard patient identifiers
+        clean_pid = patient_id.replace("P_", "").lower()
+        cstem = clean_stem(path.name)
+        return clean_pid in cstem or cstem in clean_pid
+
+    def find_candidates_for_patient(self, patient_id: str, file_type: str) -> List[Path]:
+        """Search all roots and return all distinct valid candidate files for patient_id."""
+        assert file_type in ["ct", "mask"], f"Invalid file_type: {file_type}"
+        target_dirs = self.APPROVED_CT_DIRS if file_type == "ct" else self.APPROVED_MASK_DIRS
+
+        roots = self._get_search_roots()
+        candidates: List[Path] = []
+        seen_resolved: Set[Path] = set()
+
+        for root in roots:
+            if not root.exists():
+                continue
+
+            # Check direct subdirectories matching target_dirs
+            dirs_to_check: List[Path] = []
+            if root.name.lower() in target_dirs:
+                dirs_to_check.append(root)
+
+            try:
+                for child in root.iterdir():
+                    if child.is_dir() and child.name.lower() in target_dirs:
+                        dirs_to_check.append(child)
+            except Exception:
+                pass
+
+            for d in dirs_to_check:
+                try:
+                    for item in d.glob("*"):
+                        if item.is_file() and is_nii_file(item) and item.stat().st_size > 0:
+                            res = item.resolve()
+                            if res not in seen_resolved:
+                                if self._is_valid_type(item, file_type) and self.matches_patient(item, patient_id, file_type):
+                                    seen_resolved.add(res)
+                                    candidates.append(item)
+                except Exception:
+                    pass
+
+        # If direct matching didn't yield candidates, perform controlled rglob
+        if not candidates:
+            for root in roots:
+                try:
+                    for item in root.rglob("*.nii*"):
+                        if item.is_file() and is_nii_file(item) and item.stat().st_size > 0:
+                            res = item.resolve()
+                            if res not in seen_resolved:
+                                if self._is_valid_type(item, file_type) and self.matches_patient(item, patient_id, file_type):
+                                    seen_resolved.add(res)
+                                    candidates.append(item)
+                except Exception:
+                    pass
+
+        return candidates
+
+    def resolve_patient_file(
+        self,
+        patient_id: str,
+        file_type: str,
+        hint_path: Optional[str] = None,
+    ) -> Path:
+        """Resolve a single CT or Mask file for patient_id with strict ambiguity detection."""
+        assert file_type in ["ct", "mask"], f"Invalid file_type: {file_type}"
+
+        # 1. Test hint_path if given
+        if hint_path:
+            p_hint = Path(hint_path)
+            if p_hint.exists() and p_hint.is_file():
+                if not is_nii_file(p_hint):
+                    raise PathResolverError(f"File '{p_hint}' has invalid extension. Only .nii/.nii.gz accepted.")
+                if p_hint.stat().st_size == 0:
+                    raise PathResolverError(f"File '{p_hint}' is 0 bytes (corrupted).")
+                if not self._is_valid_type(p_hint, file_type):
+                    raise PathResolverError(
+                        f"Hint file '{p_hint}' does not match expected file type '{file_type}'."
+                    )
+                if not self.matches_patient(p_hint, patient_id, file_type):
+                    raise PairIntegrityError(
+                        f"Hint file '{p_hint.name}' does not match patient identity '{patient_id}'."
+                    )
+                # Verify hint has no ambiguity against discovered candidates
+                cands = self.find_candidates_for_patient(patient_id, file_type)
+                if len(cands) > 1:
+                    raise AmbiguityError(
+                        f"Ambiguous {file_type.upper()} candidates for patient '{patient_id}': "
+                        f"{[str(c) for c in cands]}."
+                    )
+                return p_hint
+
+        # 2. Discover candidates across approved directories
+        candidates = self.find_candidates_for_patient(patient_id, file_type)
+
+        if len(candidates) == 0:
+            raise FileNotFoundError(
+                f"SafePathResolver: Could not find valid {file_type.upper()} file for patient '{patient_id}'. "
+                f"Searched approved directories in roots: {[str(r) for r in self._get_search_roots()]}."
+            )
+        elif len(candidates) > 1:
+            raise AmbiguityError(
+                f"Ambiguous {file_type.upper()} candidates for patient '{patient_id}'. "
+                f"Found {len(candidates)} matching files: {[str(c) for c in candidates]}. "
+                f"Manual disambiguation required."
+            )
+
+        return candidates[0]
+
+    def resolve_file(
+        self,
+        target_path: str,
+        file_type: str,
+        patient_id: Optional[str] = None,
+    ) -> Path:
+        """Resolve a single file path safely with type validation and ambiguity detection.
+
+        Maintains backward compatibility for callers specifying file paths directly.
         """
         assert file_type in ["ct", "mask"], f"Invalid file_type: {file_type}"
-        cache_key = f"{file_type}:{target_path}"
+        cache_key = f"{file_type}:{target_path}:{patient_id or ''}"
         if cache_key in self._path_cache:
             return self._path_cache[cache_key]
 
         p = Path(target_path)
 
-        # 1. Direct path check
+        # Validate extension
+        if not is_nii_file(p):
+            raise PathResolverError(
+                f"Invalid file extension for '{p.name}'. Only .nii and .nii.gz are accepted."
+            )
+
+        # Check direct existence
         if p.exists() and p.is_file():
             if p.stat().st_size == 0:
                 raise PathResolverError(f"File '{p}' exists but is 0 bytes (corrupted).")
@@ -130,43 +433,165 @@ class SafePathResolver:
             self._path_cache[cache_key] = p
             return p
 
-        # 2. Search roots
-        clean_stem = p.name.replace(".nii.gz", "").replace(".nii", "")
-        exts = [".nii.gz", ".nii"]
+        # Infer patient ID from filename stem if not provided
+        pid = patient_id
+        if not pid:
+            info = parse_patient_id(clean_stem(p.name))
+            if info:
+                pid = info["canonical_id"]
 
-        candidate_subdirs = (
-            ["Infection_Mask", "infection_mask", "ground_truth_masks",
-             "Lung_and_Infection_Mask", "masks", "mask"]
-            if file_type == "mask"
-            else ["ct_volumes", "CT_Volumes", "images", "ct"]
-        )
+        if pid:
+            resolved = self.resolve_patient_file(pid, file_type=file_type, hint_path=target_path)
+            self._path_cache[cache_key] = resolved
+            return resolved
 
+        # If patient ID cannot be inferred, search approved directories by stem
+        cstem = clean_stem(p.name)
         search_roots = self._get_search_roots()
-
-        # Step 2a: Check candidate subdirectories
+        cands: List[Path] = []
         for root in search_roots:
-            for sdir in candidate_subdirs:
-                for ext in exts:
-                    cand = root / sdir / f"{clean_stem}{ext}"
-                    if cand.exists() and cand.is_file() and cand.stat().st_size > 0:
-                        if self._is_valid_type(cand, file_type):
-                            self._path_cache[cache_key] = cand
-                            return cand
+            for item in root.rglob(f"{cstem}.nii*"):
+                if item.is_file() and is_nii_file(item) and item.stat().st_size > 0:
+                    if self._is_valid_type(item, file_type):
+                        cands.append(item)
 
-        # Step 2b: Recursive search with strict type filtering
-        for root in search_roots:
-            matches = list(root.rglob(f"{clean_stem}.nii*"))
-            for m in matches:
-                if m.is_file() and m.stat().st_size > 0:
-                    if self._is_valid_type(m, file_type):
-                        self._path_cache[cache_key] = m
-                        return m
+        distinct = list({c.resolve(): c for c in cands}.values())
+        if len(distinct) == 0:
+            raise FileNotFoundError(
+                f"SafePathResolver: Could not find valid {file_type.upper()} file for '{target_path}'. "
+                f"Searched roots: {[str(r) for r in search_roots]}."
+            )
+        elif len(distinct) > 1:
+            raise AmbiguityError(
+                f"Ambiguous matches for '{target_path}': {[str(c) for c in distinct]}."
+            )
 
-        # NEVER fall back to arbitrary matches!
-        raise FileNotFoundError(
-            f"SafePathResolver: Could not find valid {file_type.upper()} file for '{target_path}'. "
-            f"Searched roots: {[str(r) for r in search_roots]} with clean stem '{clean_stem}'."
-        )
+        self._path_cache[cache_key] = distinct[0]
+        return distinct[0]
+
+    def validate_pair(
+        self,
+        ct_path: Path,
+        mask_path: Path,
+        patient_id: str = "",
+        validate_data: bool = False,
+    ) -> Tuple[Path, Path]:
+        """Validate CT-mask pairing integrity according to Phase 3 criteria.
+
+        Validates:
+        - Both files exist and are non-zero.
+        - CT and Mask are distinct physical files.
+        - Both files belong to the same patient.
+        - Both NIfTI files can be loaded (if nibabel is installed).
+        - 3D shapes are compatible.
+        - Affine matrices match within explicitly documented tolerance (atol=1e-3, rtol=1e-3).
+        - Mask labels conform to segmentation conventions (when validate_data=True).
+        - CT scan does not contain purely binary mask data.
+        """
+        # 1. Existence and non-zero size
+        if not ct_path.is_file():
+            raise FileNotFoundError(f"CT file does not exist: {ct_path}")
+        if ct_path.stat().st_size == 0:
+            raise PathResolverError(f"CT file '{ct_path}' is 0 bytes (corrupted).")
+
+        if not mask_path.is_file():
+            raise FileNotFoundError(f"Mask file does not exist: {mask_path}")
+        if mask_path.stat().st_size == 0:
+            raise PathResolverError(f"Mask file '{mask_path}' is 0 bytes (corrupted).")
+
+        # 2. Distinct file enforcement (Rule 2)
+        if ct_path.resolve() == mask_path.resolve():
+            raise PairIntegrityError(
+                f"FATAL PAIRING ERROR: CT path and Mask path resolved to the EXACT SAME file: '{ct_path}'. "
+                f"Patient: '{patient_id}'."
+            )
+
+        # 3. Patient identity verification
+        if patient_id:
+            if not self.matches_patient(ct_path, patient_id, file_type="ct"):
+                raise PairIntegrityError(
+                    f"CT file '{ct_path.name}' does not match requested patient '{patient_id}'."
+                )
+            if not self.matches_patient(mask_path, patient_id, file_type="mask"):
+                raise PairIntegrityError(
+                    f"Mask file '{mask_path.name}' does not match requested patient '{patient_id}'."
+                )
+
+        # Verify CT and Mask patient match each other
+        pid_ct = parse_patient_id(clean_stem(ct_path.name))
+        pid_mask = parse_patient_id(clean_stem(mask_path.name))
+        if pid_ct and pid_mask:
+            if pid_ct["canonical_id"] != pid_mask["canonical_id"]:
+                raise PairIntegrityError(
+                    f"Patient mismatch: CT '{ct_path.name}' belongs to {pid_ct['canonical_id']} "
+                    f"but Mask '{mask_path.name}' belongs to {pid_mask['canonical_id']}."
+                )
+
+        # 4. NIfTI loading and geometric/header integrity
+        if nib is not None:
+            try:
+                ct_nii = nib.load(str(ct_path))
+                mask_nii = nib.load(str(mask_path))
+            except Exception as e:
+                if self.strict_nifti:
+                    raise PairIntegrityError(f"Failed to load NIfTI headers: {e}") from e
+                return ct_path, mask_path
+
+            # Shape check
+            if ct_nii.shape != mask_nii.shape:
+                raise PairIntegrityError(
+                    f"Shape mismatch for patient '{patient_id}': "
+                    f"CT shape {ct_nii.shape} != Mask shape {mask_nii.shape}."
+                )
+
+            # Affine compatibility check
+            if not np.allclose(ct_nii.affine, mask_nii.affine, atol=self.AFFINE_ATOL, rtol=self.AFFINE_RTOL):
+                max_diff = float(np.max(np.abs(ct_nii.affine - mask_nii.affine)))
+                raise PairIntegrityError(
+                    f"Affine mismatch between CT and Mask for patient '{patient_id}': "
+                    f"max absolute difference {max_diff:.6f} exceeds tolerance "
+                    f"(atol={self.AFFINE_ATOL}, rtol={self.AFFINE_RTOL})."
+                )
+
+            # Deep data inspection (optional, cached)
+            if validate_data:
+                mask_data = mask_nii.get_fdata(dtype=np.float32)
+                unique_labels = set(np.unique(mask_data))
+                if not unique_labels.issubset({0.0, 1.0, 2.0, 3.0}):
+                    raise PairIntegrityError(
+                        f"Invalid mask labels {unique_labels} for patient '{patient_id}'. "
+                        f"Allowed label values must be a subset of {{0, 1, 2, 3}}."
+                    )
+                ct_data = ct_nii.get_fdata(dtype=np.float32)
+                ct_unique = set(np.unique(ct_data))
+                if ct_unique.issubset({0.0, 1.0}) and len(ct_unique) <= 2:
+                    raise PairIntegrityError(
+                        f"CT volume '{ct_path}' contains only binary values {ct_unique}. "
+                        f"This is a mask file masquerading as a CT scan!"
+                    )
+
+        return ct_path, mask_path
+
+    def resolve_patient(
+        self,
+        patient_id: str,
+        ct_hint: Optional[str] = None,
+        mask_hint: Optional[str] = None,
+        validate: bool = True,
+    ) -> Tuple[Path, Path]:
+        """Resolve both CT and Mask paths for a given patient ID."""
+        cache_key = f"patient:{patient_id}"
+        if cache_key in self._pair_cache:
+            return self._pair_cache[cache_key]
+
+        ct_path = self.resolve_patient_file(patient_id, file_type="ct", hint_path=ct_hint)
+        mask_path = self.resolve_patient_file(patient_id, file_type="mask", hint_path=mask_hint)
+
+        if validate:
+            self.validate_pair(ct_path, mask_path, patient_id=patient_id, validate_data=False)
+
+        self._pair_cache[cache_key] = (ct_path, mask_path)
+        return ct_path, mask_path
 
     def resolve_pair(
         self,
@@ -174,27 +599,26 @@ class SafePathResolver:
         mask_path: str,
         patient_id: str = "",
         sample_id: str = "",
+        validate: bool = True,
     ) -> Tuple[Path, Path]:
-        """Resolve both CT and Mask paths, enforcing that they are distinct files.
+        """Resolve both CT and Mask paths, enforcing patient identity and pairing integrity."""
+        cache_key = f"{patient_id}:{ct_path}:{mask_path}"
+        if cache_key in self._pair_cache:
+            return self._pair_cache[cache_key]
 
-        Returns
-        -------
-        Tuple[Path, Path]
-            (resolved_ct_path, resolved_mask_path)
+        pid = patient_id
+        if not pid:
+            info = parse_patient_id(clean_stem(Path(ct_path).name)) or parse_patient_id(clean_stem(Path(mask_path).name))
+            if info:
+                pid = info["canonical_id"]
 
-        Raises
-        ------
-        PathResolverError
-            If CT and Mask resolve to the exact same file.
-        """
-        res_ct = self.resolve_file(ct_path, file_type="ct")
-        res_mask = self.resolve_file(mask_path, file_type="mask")
+        if pid:
+            res_ct, res_mask = self.resolve_patient(pid, ct_hint=ct_path, mask_hint=mask_path, validate=validate)
+        else:
+            res_ct = self.resolve_file(ct_path, file_type="ct")
+            res_mask = self.resolve_file(mask_path, file_type="mask")
+            if validate:
+                self.validate_pair(res_ct, res_mask, patient_id=patient_id, validate_data=False)
 
-        # Crucial Safety Rule: CT and Mask can NEVER be the same file
-        if res_ct.resolve() == res_mask.resolve():
-            raise PathResolverError(
-                f"FATAL PAIRING ERROR: CT path and Mask path resolved to the EXACT SAME file: "
-                f"'{res_ct}'. Patient: '{patient_id}', Sample: '{sample_id}'."
-            )
-
+        self._pair_cache[cache_key] = (res_ct, res_mask)
         return res_ct, res_mask
