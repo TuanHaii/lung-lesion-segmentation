@@ -1,8 +1,19 @@
 """
 Task ID: EXP-02 / MODEL-06 (Sprint W3 - Baseline Training)
 Mô tả: Huấn luyện mô hình SegNet với Hybrid Loss (BCE + Dice Loss)
-Đảm bảo điều kiện thực nghiệm công bằng (Fair Comparison) với U-Net và Attention U-Net.
+
+[DEPRECATED in V2]:
+train_segnet.py is DEPRECATED in Pipeline V2 to maintain fair comparison standards.
+Please use the unified training engine:
+    python train.py --config configs/segnet.yaml
 """
+
+import warnings
+warnings.warn(
+    "train_segnet.py is deprecated in Pipeline V2. Use 'python train.py --config configs/segnet.yaml' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import os
 import sys

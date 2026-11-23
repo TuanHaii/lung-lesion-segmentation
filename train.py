@@ -18,6 +18,15 @@ def get_manifest_sha(manifest_path="data/processed/clean_slices_manifest.csv") -
         pass
     return "unknown"
 
+def get_file_sha(filepath: str) -> str:
+    try:
+        p = Path(filepath)
+        if p.exists():
+            return hashlib.sha256(p.read_bytes()).hexdigest()
+    except Exception:
+        pass
+    return "unknown"
+
 import yaml
 import time
 import argparse
@@ -37,7 +46,8 @@ from src.models.attention_unet import AttentionUNet
 from src.models.segnet import SegNet
 from src.losses.hybrid_loss import HybridLoss
 from src.data.dataset import get_dataloader
-from src.utils.metrics import compute_metrics
+from src.data.v2.dataset import get_dataloader_v2
+from src.utils.metrics import compute_metrics, compute_sample_metrics
 from src.utils.seed import set_seed, seed_worker
 
 
@@ -108,7 +118,7 @@ def validate(model, dataloader, criterion, device, use_amp=False):
         batch_size = images.size(0)
         running_loss += loss.item() * batch_size
 
-        metrics = compute_metrics(outputs, masks, threshold=0.5)
+        metrics = compute_sample_metrics(outputs, masks, threshold=0.5)
         total_dice += metrics["dice"] * batch_size
         total_iou += metrics["iou"] * batch_size
         total_precision += metrics["precision"] * batch_size
@@ -151,6 +161,19 @@ def main():
         type=str,
         default=None,
         help="Use the compact 2D slice cache (scripts/build_slice_cache.py) instead of NIfTI volumes",
+    )
+    parser.add_argument(
+        "--data_version",
+        type=str,
+        default="v2",
+        choices=["v1", "v2"],
+        help="Dataset and preprocessing pipeline version (v1 or v2, default: v2)",
+    )
+    parser.add_argument(
+        "--manifest_v2",
+        type=str,
+        default="data/processed_v2/clean_slices_manifest_v2.csv",
+        help="Path to V2 manifest CSV",
     )
     args = parser.parse_args()
 
@@ -222,7 +245,28 @@ def main():
             num_workers=num_workers,
             pin_memory=pin_memory,
         )
+    elif args.data_version == "v2" and os.path.exists(args.manifest_v2):
+        print(f">> [V2 Pipeline] Using Dual-Source DataLoader with manifest: {args.manifest_v2}")
+        train_loader = get_dataloader_v2(
+            manifest_path=args.manifest_v2,
+            split="train",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            raw_data_dir=raw_data_dir,
+            lesion_label=lesion_label,
+        )
+        val_loader = get_dataloader_v2(
+            manifest_path=args.manifest_v2,
+            split="val",
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            raw_data_dir=raw_data_dir,
+            lesion_label=lesion_label,
+        )
     else:
+        print(">> [V1 Pipeline] Using legacy DataLoader...")
         train_loader = get_dataloader(
             split="train",
             batch_size=batch_size,
@@ -303,6 +347,10 @@ def main():
                 f"{current_lr:.8f},{elapsed:.2f}\n"
             )
 
+        split_sha = get_file_sha("data/processed/splits_patient_level.json")
+        prep_version = "v2_dual_source" if args.data_version == "v2" else "v1_hu_window"
+        model_name = config.get("model", {}).get("name", "UnknownModel")
+
         # Lưu checkpoint tốt nhất theo Val Dice
         if val_metrics["dice"] > best_val_dice:
             best_val_dice = val_metrics["dice"]
@@ -310,16 +358,21 @@ def main():
             best_save_path = os.path.join(checkpoint_dir, f"{exp_id}_best.pth")
             torch.save(
                 {
+                    "experiment_id": exp_id,
+                    "model_name": model_name,
                     "epoch": epoch,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
                     "best_val_dice": best_val_dice,
                     "val_metrics": val_metrics,
                     "config": config,
-                    "lesion_label": lesion_label,
-                    "seed": seed,
                     "git_commit": git_commit,
-                    "data_manifest_sha": data_manifest_sha,
+                    "data_manifest_sha256": data_manifest_sha,
+                    "split_sha256": split_sha,
+                    "preprocessing_version": prep_version,
+                    "seed": seed,
+                    "lesion_label": lesion_label,
                 },
                 best_save_path,
             )
@@ -331,15 +384,21 @@ def main():
         last_save_path = os.path.join(checkpoint_dir, f"{exp_id}_last.pth")
         torch.save(
             {
+                "experiment_id": exp_id,
+                "model_name": model_name,
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
                 "last_val_dice": val_metrics["dice"],
+                "val_metrics": val_metrics,
                 "config": config,
-                "lesion_label": lesion_label,
-                "seed": seed,
                 "git_commit": git_commit,
-                "data_manifest_sha": data_manifest_sha,
+                "data_manifest_sha256": data_manifest_sha,
+                "split_sha256": split_sha,
+                "preprocessing_version": prep_version,
+                "seed": seed,
+                "lesion_label": lesion_label,
             },
             last_save_path,
         )
