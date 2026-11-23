@@ -52,6 +52,182 @@ class PairIntegrityError(PathResolverError):
 # Helper Functions
 # -------------------------------------------------------------------------
 
+# -------------------------------------------------------------------------
+# Verified Explicit Patient Registry (All 20 Patients)
+# -------------------------------------------------------------------------
+
+VERIFIED_PATIENT_REGISTRY: Dict[str, Dict[str, Any]] = {
+    "P_coronacases_001": {
+        "source": "coronacases",
+        "case_num": 1,
+        "known_ct_aliases": {"coronacases_org_001", "coronacases_001", "case001", "case_001"},
+        "known_mask_aliases": {"coronacases_001", "infection_mask_coronacases_001"},
+    },
+    "P_coronacases_002": {
+        "source": "coronacases",
+        "case_num": 2,
+        "known_ct_aliases": {"coronacases_org_002", "coronacases_002", "case002", "case_002"},
+        "known_mask_aliases": {"coronacases_002", "infection_mask_coronacases_002"},
+    },
+    "P_coronacases_003": {
+        "source": "coronacases",
+        "case_num": 3,
+        "known_ct_aliases": {"coronacases_org_003", "coronacases_003", "case003", "case_003"},
+        "known_mask_aliases": {"coronacases_003", "infection_mask_coronacases_003"},
+    },
+    "P_coronacases_004": {
+        "source": "coronacases",
+        "case_num": 4,
+        "known_ct_aliases": {"coronacases_org_004", "coronacases_004", "case004", "case_004"},
+        "known_mask_aliases": {"coronacases_004", "infection_mask_coronacases_004"},
+    },
+    "P_coronacases_005": {
+        "source": "coronacases",
+        "case_num": 5,
+        "known_ct_aliases": {"coronacases_org_005", "coronacases_005", "case005", "case_005"},
+        "known_mask_aliases": {"coronacases_005", "infection_mask_coronacases_005"},
+    },
+    "P_coronacases_006": {
+        "source": "coronacases",
+        "case_num": 6,
+        "known_ct_aliases": {"coronacases_org_006", "coronacases_006", "case006", "case_006"},
+        "known_mask_aliases": {"coronacases_006", "infection_mask_coronacases_006"},
+    },
+    "P_coronacases_007": {
+        "source": "coronacases",
+        "case_num": 7,
+        "known_ct_aliases": {
+            "coronacases_org_case007", "coronacases_org_007", "coronacases_007", "case007", "case_007"
+        },
+        "known_mask_aliases": {"coronacases_007", "infection_mask_coronacases_007"},
+    },
+    "P_coronacases_008": {
+        "source": "coronacases",
+        "case_num": 8,
+        "known_ct_aliases": {"coronacases_org_008", "coronacases_008", "case008", "case_008"},
+        "known_mask_aliases": {"coronacases_008", "infection_mask_coronacases_008"},
+    },
+    "P_coronacases_009": {
+        "source": "coronacases",
+        "case_num": 9,
+        "known_ct_aliases": {"case009", "coronacases_org_009", "coronacases_009", "case_009"},
+        "known_mask_aliases": {"coronacases_009", "infection_mask_coronacases_009"},
+    },
+    "P_coronacases_010": {
+        "source": "coronacases",
+        "case_num": 10,
+        "known_ct_aliases": {
+            "coronacases_org_case010", "coronacases_org_010", "coronacases_010", "case010", "case_010"
+        },
+        "known_mask_aliases": {"coronacases_010", "infection_mask_coronacases_010"},
+    },
+    "P_radiopaedia_10_85902_1": {
+        "source": "radiopaedia",
+        "case": 10, "study": 85902, "series": 1,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-10_85902_1-dcm",
+            "radiopaedia_org_10_85902_1", "radiopaedia_10_85902_1", "case_10_85902_1",
+        },
+        "known_mask_aliases": {"radiopaedia_10_85902_1", "infection_mask_radiopaedia_10_85902_1"},
+    },
+    "P_radiopaedia_10_85902_3": {
+        "source": "radiopaedia",
+        "case": 10, "study": 85902, "series": 3,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-10_85902_3-dcm",
+            "radiopaedia_org_10_85902_3", "radiopaedia_10_85902_3", "case_10_85902_3",
+        },
+        "known_mask_aliases": {"radiopaedia_10_85902_3", "infection_mask_radiopaedia_10_85902_3"},
+    },
+    "P_radiopaedia_14_85914_0": {
+        "source": "radiopaedia",
+        "case": 14, "study": 85914, "series": 0,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-14_85914_0-dcm",
+            "radiopaedia_org_14_85914_0", "radiopaedia_14_85914_0", "case_14_85914_0",
+        },
+        "known_mask_aliases": {"radiopaedia_14_85914_0", "infection_mask_radiopaedia_14_85914_0"},
+    },
+    "P_radiopaedia_27_86410_0": {
+        "source": "radiopaedia",
+        "case": 27, "study": 86410, "series": 0,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-27_86410_0-dcm",
+            "radiopaedia_org_27_86410_0", "radiopaedia_27_86410_0", "case_27_86410_0",
+        },
+        "known_mask_aliases": {"radiopaedia_27_86410_0", "infection_mask_radiopaedia_27_86410_0"},
+    },
+    "P_radiopaedia_29_86490_1": {
+        "source": "radiopaedia",
+        "case": 29, "study": 86490, "series": 1,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-29_86490_1-dcm",
+            "radiopaedia_org_29_86490_1", "radiopaedia_29_86490_1", "case_29_86490_1",
+        },
+        "known_mask_aliases": {"radiopaedia_29_86490_1", "infection_mask_radiopaedia_29_86490_1"},
+    },
+    "P_radiopaedia_29_86491_1": {
+        "source": "radiopaedia",
+        "case": 29, "study": 86491, "series": 1,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-29_86491_1-dcm",
+            "radiopaedia_org_29_86491_1", "radiopaedia_29_86491_1", "case_29_86491_1",
+        },
+        "known_mask_aliases": {"radiopaedia_29_86491_1", "infection_mask_radiopaedia_29_86491_1"},
+    },
+    "P_radiopaedia_36_86526_0": {
+        "source": "radiopaedia",
+        "case": 36, "study": 86526, "series": 0,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-36_86526_0-dcm",
+            "radiopaedia_org_36_86526_0", "radiopaedia_36_86526_0", "case_36_86526_0",
+        },
+        "known_mask_aliases": {"radiopaedia_36_86526_0", "infection_mask_radiopaedia_36_86526_0"},
+    },
+    "P_radiopaedia_40_86625_0": {
+        "source": "radiopaedia",
+        "case": 40, "study": 86625, "series": 0,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-40_86625_0-dcm",
+            "radiopaedia_org_40_86625_0", "radiopaedia_40_86625_0", "case_40_86625_0",
+        },
+        "known_mask_aliases": {"radiopaedia_40_86625_0", "infection_mask_radiopaedia_40_86625_0"},
+    },
+    "P_radiopaedia_4_85506_1": {
+        "source": "radiopaedia",
+        "case": 4, "study": 85506, "series": 1,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-4_85506_1-dcm",
+            "radiopaedia_org_4_85506_1", "radiopaedia_4_85506_1", "case_4_85506_1",
+        },
+        "known_mask_aliases": {"radiopaedia_4_85506_1", "infection_mask_radiopaedia_4_85506_1"},
+    },
+    "P_radiopaedia_7_85703_0": {
+        "source": "radiopaedia",
+        "case": 7, "study": 85703, "series": 0,
+        "known_ct_aliases": {
+            "radiopaedia_org_covid-19-pneumonia-7_85703_0-dcm",
+            "radiopaedia_org_7_85703_0", "radiopaedia_7_85703_0", "case_7_85703_0",
+        },
+        "known_mask_aliases": {"radiopaedia_7_85703_0", "infection_mask_radiopaedia_7_85703_0"},
+    },
+}
+
+# -------------------------------------------------------------------------
+# Pre-compiled Regex Patterns for Strict Source-Specific Normalization
+# -------------------------------------------------------------------------
+
+RE_CORONACASES = re.compile(
+    r"^(?:p_)?(?:coronacases(?:_org)?(?:_case)?|case)[-_]?0*(\d+)$",
+    re.IGNORECASE,
+)
+
+RE_RADIOPAEDIA = re.compile(
+    r"^(?:p_)?(?:radiopaedia(?:_org)?(?:_covid[-_]19[-_]pneumonia)?(?:_case)?|case)[-_]?0*(\d+)[-_](\d+)[-_](\d+)(?:[-_]dcm)?$",
+    re.IGNORECASE,
+)
+
+
 def is_nii_file(path: Path) -> bool:
     """Check if file ends with .nii or .nii.gz (case-insensitive)."""
     name = path.name.lower()
@@ -68,48 +244,46 @@ def clean_stem(filename: str) -> str:
     return name
 
 
-def parse_patient_id(identifier: str) -> Optional[Dict[str, Any]]:
-    """Parse patient ID or filename stem into structured patient metadata.
+def parse_coronacases_id(identifier: str) -> Optional[Dict[str, Any]]:
+    """Parse Coronacases patient identifier or filename stem.
 
     Supports:
-    - Coronacases: 'P_coronacases_001', 'coronacases_001', 'coronacases_org_001',
-                   'case001', 'case_001', 'case1', 'case_1'
-    - Radiopaedia: 'P_radiopaedia_10_85902_1', 'radiopaedia_10_85902_1',
-                   'radiopaedia_org_10_85902_1', 'radiopaedia_case_10_85902_1',
-                   'case_10_85902_1'
+    - Standard: 'P_coronacases_001', 'coronacases_001', 'coronacases_1'
+    - Org variations: 'coronacases_org_001', 'coronacases_org_case007', 'coronacases_org_case010'
+    - Case variations: 'case009', 'case_009', 'case9'
     """
     stem = clean_stem(identifier)
-
-    # Strip mask suffixes / prefixes for matching
     stem = re.sub(r"^(?:infection_mask_|mask_)", "", stem)
     stem = re.sub(r"[-_](?:mask|clean|org)$", "", stem)
 
-    # 1. Coronacases matching
-    # Matches P_coronacases_009, coronacases_009, coronacases_org_009, case009, case_009, case9
-    corona_match = re.match(
-        r"^(?:p_)?(?:coronacases(?:_org)?|case)[-_]?0*(\d+)$",
-        stem,
-        re.IGNORECASE,
-    )
-    if corona_match:
-        case_num = int(corona_match.group(1))
+    m = RE_CORONACASES.match(stem)
+    if m:
+        case_num = int(m.group(1))
         return {
             "source": "coronacases",
             "case_num": case_num,
             "canonical_id": f"P_coronacases_{case_num:03d}",
         }
+    return None
 
-    # 2. Radiopaedia matching
-    # Matches P_radiopaedia_10_85902_1, radiopaedia_10_85902_1, case_10_85902_1, radiopaedia_case_10_85902_1
-    radio_match = re.match(
-        r"^(?:p_)?(?:radiopaedia(?:_org|_case)?|case)[-_]?0*(\d+)[-_](\d+)[-_](\d+)$",
-        stem,
-        re.IGNORECASE,
-    )
-    if radio_match:
-        case_val = int(radio_match.group(1))
-        study_val = int(radio_match.group(2))
-        series_val = int(radio_match.group(3))
+
+def parse_radiopaedia_id(identifier: str) -> Optional[Dict[str, Any]]:
+    """Parse Radiopaedia patient identifier or filename stem.
+
+    Supports:
+    - Standard: 'P_radiopaedia_10_85902_1', 'radiopaedia_10_85902_1'
+    - Real Kaggle CT volume names: 'radiopaedia_org_covid-19-pneumonia-10_85902_1-dcm'
+    - Case variations: 'case_10_85902_1', 'radiopaedia_case_10_85902_1'
+    """
+    stem = clean_stem(identifier)
+    stem = re.sub(r"^(?:infection_mask_|mask_)", "", stem)
+    stem = re.sub(r"[-_](?:mask|clean|org)$", "", stem)
+
+    m = RE_RADIOPAEDIA.match(stem)
+    if m:
+        case_val = int(m.group(1))
+        study_val = int(m.group(2))
+        series_val = int(m.group(3))
         return {
             "source": "radiopaedia",
             "case": case_val,
@@ -117,7 +291,17 @@ def parse_patient_id(identifier: str) -> Optional[Dict[str, Any]]:
             "series": series_val,
             "canonical_id": f"P_radiopaedia_{case_val}_{study_val}_{series_val}",
         }
+    return None
 
+
+def parse_patient_id(identifier: str) -> Optional[Dict[str, Any]]:
+    """Parse patient ID or filename stem into structured patient metadata."""
+    res_c = parse_coronacases_id(identifier)
+    if res_c is not None:
+        return res_c
+    res_r = parse_radiopaedia_id(identifier)
+    if res_r is not None:
+        return res_r
     return None
 
 
@@ -220,7 +404,7 @@ class SafePathResolver:
                 if p.exists() and p not in roots:
                     roots.append(p)
 
-        # Kaggle input directory exploration (up to 2 levels deep)
+        # Kaggle input directory exploration (up to 4 levels deep)
         kaggle_root = Path("/kaggle/input")
         if kaggle_root.exists():
             roots.append(kaggle_root)
@@ -231,6 +415,12 @@ class SafePathResolver:
                         for grandchild in child.iterdir():
                             if grandchild.is_dir() and grandchild not in roots:
                                 roots.append(grandchild)
+                                for ggchild in grandchild.iterdir():
+                                    if ggchild.is_dir() and ggchild not in roots:
+                                        roots.append(ggchild)
+                                        for gggchild in ggchild.iterdir():
+                                            if gggchild.is_dir() and gggchild not in roots:
+                                                roots.append(gggchild)
             except Exception:
                 pass
 
@@ -289,10 +479,15 @@ class SafePathResolver:
                     and pid_info["series"] == file_info["series"]
                 )
 
-        # Fallback substring token matching for non-standard patient identifiers
-        clean_pid = patient_id.replace("P_", "").lower()
-        cstem = clean_stem(path.name)
-        return clean_pid in cstem or cstem in clean_pid
+        # Explicit verified patient registry lookup (controlled matching, no wild substring)
+        canon_id = pid_info["canonical_id"] if pid_info else patient_id
+        if canon_id in VERIFIED_PATIENT_REGISTRY:
+            reg = VERIFIED_PATIENT_REGISTRY[canon_id]
+            target_aliases = reg["known_ct_aliases"] if file_type == "ct" else reg["known_mask_aliases"]
+            cstem = clean_stem(path.name)
+            return cstem in target_aliases
+
+        return False
 
     def find_candidates_for_patient(self, patient_id: str, file_type: str) -> List[Path]:
         """Search all roots and return all distinct valid candidate files for patient_id."""
@@ -328,6 +523,14 @@ class SafePathResolver:
                                 if self._is_valid_type(item, file_type) and self.matches_patient(item, patient_id, file_type):
                                     seen_resolved.add(res)
                                     candidates.append(item)
+                        elif item.is_dir():
+                            for subitem in item.glob("*"):
+                                if subitem.is_file() and is_nii_file(subitem) and subitem.stat().st_size > 0:
+                                    res = subitem.resolve()
+                                    if res not in seen_resolved:
+                                        if self._is_valid_type(subitem, file_type) and self.matches_patient(subitem, patient_id, file_type):
+                                            seen_resolved.add(res)
+                                            candidates.append(subitem)
                 except Exception:
                     pass
 

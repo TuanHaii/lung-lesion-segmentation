@@ -160,6 +160,7 @@ def get_dataloader_v2(
     batch_size: int = 16,
     target_size: Tuple[int, int] = (256, 256),
     lesion_label: int = 1,
+    cache_volumes: bool = True,
     num_workers: int = 0,
     pin_memory: bool = False,
     raw_data_dir: Optional[str] = None,
@@ -171,6 +172,7 @@ def get_dataloader_v2(
         split=split,
         target_size=target_size,
         lesion_label=lesion_label,
+        cache_volumes=cache_volumes,
         raw_data_dir=raw_data_dir,
         samples_override=samples_override,
     )

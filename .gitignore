@@ -13,3 +13,9 @@ env/
 *.npy
 *.zip
 raw_predictions_tensors_eval02/
+.codex-*
+.chart-*
+audit_independent
+out
+output
+scratch/
