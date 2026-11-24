@@ -1,0 +1,13 @@
+2026-10-14 18:42:36,470 [INFO] === B\u1eaeT \u0110\u1ea6U HU\u1ea4N LUY\u1ec6N SEGNet (Experiment ID: EXP-SEGNET-001) ===
+2026-10-14 18:42:36,470 [INFO] S\u1eed d\u1ee5ng thi\u1ebft b\u1ecb: cpu
+2026-10-14 18:42:43,269 [INFO] Epoch [1/5] - Loss: 0.5974
+2026-10-14 18:42:43,295 [INFO] -> \u0110ã c\u1eadp nh\u1eadt checkpoint t\u1ed1t nh\u1ea5t t\u1ea1i: checkpoints/segnet_best.pth
+2026-10-14 18:42:47,921 [INFO] Epoch [2/5] - Loss: 0.5893
+2026-10-14 18:42:47,936 [INFO] -> \u0110ã c\u1eadp nh\u1eadt checkpoint t\u1ed1t nh\u1ea5t t\u1ea1i: checkpoints/segnet_best.pth
+2026-10-14 18:42:52,590 [INFO] Epoch [3/5] - Loss: 0.5837
+2026-10-14 18:42:52,607 [INFO] -> \u0110ã c\u1eadp nh\u1eadt checkpoint t\u1ed1t nh\u1ea5t t\u1ea1i: checkpoints/segnet_best.pth
+2026-10-14 18:42:57,269 [INFO] Epoch [4/5] - Loss: 0.5791
+2026-10-14 18:42:57,283 [INFO] -> \u0110ã c\u1eadp nh\u1eadt checkpoint t\u1ed1t nh\u1ea5t t\u1ea1i: checkpoints/segnet_best.pth
+2026-10-14 18:43:01,998 [INFO] Epoch [5/5] - Loss: 0.5754
+2026-10-14 18:43:02,014 [INFO] -> \u0110ã c\u1eadp nh\u1eadt checkpoint t\u1ed1t nh\u1ea5t t\u1ea1i: checkpoints/segnet_best.pth
+2026-10-14 18:43:02,015 [INFO] === HOÀN T\u1ea4T HU\u1ea4N LUY\u1ec6N SEGNet ===
