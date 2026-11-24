@@ -51,6 +51,7 @@ def load_slice_metrics(slice_csv_path: str) -> Dict[str, Any]:
             records.append({
                 "sample_id": row.get("sample_id", ""),
                 "patient_id": row.get("patient_id", ""),
+                "source": row.get("source", "unknown"),
                 "slice_index": int(row.get("slice_index", 0)),
                 "lesion_present": int(float(row.get("lesion_present", 0))),
                 "dice": float(row.get("dice", 0.0)),
@@ -64,6 +65,10 @@ def load_slice_metrics(slice_csv_path: str) -> Dict[str, Any]:
     # Chế độ 2: All Slices
     all_slices = records
 
+    # Phân rã theo source nếu có
+    coronacases_slices = [r for r in lesion_slices if r.get("source") == "coronacases"]
+    radiopaedia_slices = [r for r in lesion_slices if r.get("source") == "radiopaedia"]
+
     return {
         "total_slices": len(all_slices),
         "lesion_slices_count": len(lesion_slices),
@@ -75,6 +80,8 @@ def load_slice_metrics(slice_csv_path: str) -> Dict[str, Any]:
         "all_iou_list": [r["iou"] for r in all_slices],
         "all_precision_list": [r["precision"] for r in all_slices],
         "all_recall_list": [r["recall"] for r in all_slices],
+        "coronacases_lesion_dice": [r["dice"] for r in coronacases_slices],
+        "radiopaedia_lesion_dice": [r["dice"] for r in radiopaedia_slices],
     }
 
 
@@ -182,6 +189,10 @@ def generate_comparison_report(reports_dir: str = "reports", output_csv: Optiona
         p_dice_m, p_dice_s = mean_and_std(pat_data["patient_dice_list"])
         p_iou_m, p_iou_s = mean_and_std(pat_data["patient_iou_list"])
 
+        # Phân rã theo Source (Coronacases vs Radiopaedia)
+        cc_dice_m, cc_dice_s = mean_and_std(slice_data.get("coronacases_lesion_dice", []))
+        rp_dice_m, rp_dice_s = mean_and_std(slice_data.get("radiopaedia_lesion_dice", []))
+
         row = {
             "model_key": folder_name,
             "model_name": model_title,
@@ -194,6 +205,8 @@ def generate_comparison_report(reports_dir: str = "reports", output_csv: Optiona
             "all_iou": f"{a_iou_m:.4f} ± {a_iou_s:.4f}",
             "patient_dice": f"{p_dice_m:.4f} ± {p_dice_s:.4f}",
             "patient_iou": f"{p_iou_m:.4f} ± {p_iou_s:.4f}",
+            "coronacases_dice": f"{cc_dice_m:.4f} ± {cc_dice_s:.4f}" if slice_data.get("coronacases_lesion_dice") else "N/A",
+            "radiopaedia_dice": f"{rp_dice_m:.4f} ± {rp_dice_s:.4f}" if slice_data.get("radiopaedia_lesion_dice") else "N/A",
             "raw_l_dice_m": l_dice_m,
             "raw_l_iou_m": l_iou_m,
             "raw_p_dice_m": p_dice_m,
@@ -233,6 +246,15 @@ def generate_comparison_report(reports_dir: str = "reports", output_csv: Optiona
     for r in results:
         print(f"| {r['model_name']:<30} | {r['patient_dice']:<17} | {r['patient_iou']:<17} | {r['all_dice']:<17} | {r['all_iou']:<17} |")
 
+    # Bảng 3: Phân rã theo nguồn dữ liệu (nếu có thông tin source)
+    has_source_info = any(r.get("coronacases_dice") != "N/A" for r in results)
+    if has_source_info:
+        print("\n### BẢNG 3: BÁO CÁO PHÂN RÃ THEO NGUỒN DỮ LIỆU (CORONACASES VS RADIOPAEDIA - LESION DSC)\n")
+        print(f"| {'Mô hình (Model)':<30} | {'Coronacases Lesion DSC':<25} | {'Radiopaedia Lesion DSC':<25} |")
+        print(f"|:{'-'*30}-|-{'-'*25}:|-{'-'*25}:|")
+        for r in results:
+            print(f"| {r['model_name']:<30} | {r.get('coronacases_dice', 'N/A'):<25} | {r.get('radiopaedia_dice', 'N/A'):<25} |")
+
     # 2. Kiểm định thống kê Wilcoxon Signed-Rank Test nếu có ít nhất 2 mô hình
     if len(results) >= 2 and wilcoxon is not None:
         proposed_key = results[0]["model_key"]
@@ -257,7 +279,7 @@ def generate_comparison_report(reports_dir: str = "reports", output_csv: Optiona
         fieldnames = [
             "model_name", "n_lesion_slices", "lesion_dice", "lesion_iou",
             "lesion_prec", "lesion_rec", "patient_dice", "patient_iou",
-            "all_slices_dice", "all_slices_iou"
+            "all_slices_dice", "all_slices_iou", "coronacases_dice", "radiopaedia_dice"
         ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -273,6 +295,8 @@ def generate_comparison_report(reports_dir: str = "reports", output_csv: Optiona
                 "patient_iou": r["patient_iou"],
                 "all_slices_dice": r["all_dice"],
                 "all_slices_iou": r["all_iou"],
+                "coronacases_dice": r.get("coronacases_dice", "N/A"),
+                "radiopaedia_dice": r.get("radiopaedia_dice", "N/A"),
             })
     print(f"\n[+] Đã lưu bảng tổng hợp CSV tại: {output_csv}")
 
